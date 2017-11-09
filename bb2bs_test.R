@@ -1,6 +1,7 @@
 suppressMessages(library(tidyverse))
 suppressMessages(library(magrittr))
 suppressMessages(library(glue))
+suppressMessages(library(stringr))
 suppressMessages(library(nufflytics))
 
 ##Setup -----
@@ -13,8 +14,8 @@ if(testing) {
 api_key <- readRDS("data/api.key")
 
 # Read in league parameters -----
-params <- glue("data/{league_name}_parameters.tsv") %>% 
-  read_tsv(col_types = "ccccccicclllll") %>% 
+params <- glue("data/{league_name}_parameters.csv") %>% 
+  read_csv(col_types = "cccccciccllllll") %>% 
   as.list %>% 
   transpose(.names = .$ID)
 
@@ -102,7 +103,7 @@ REBBL_races =  function(r) {switch(r,
                                    "Human" = "<:Human:344918344841035777>",
                                    "Khemri" = "<:Khemri:344918363438579714>",
                                    "Kislev" = "<:Kislev:344918385542299648>",
-                                   "Lizardman" = "<:Lizard:344918404471455744>",
+                                   "Lizardmen" = "<:Lizard:344918404471455744>",
                                    "Necromantic" = "<:Necro:344918417712611328>",
                                    "Norse" = "<:Norse:344918434867314691>",
                                    "Nurgle" = "<:Nurgle:344918450977898501>",
@@ -376,7 +377,8 @@ format_impact <- function(match_data, is_fantasy) {
     str_replace_all(c(
       "(, )?(BLK|AVBr|KO|CAS|Kill|Catch|Int|Surf|Carry|TD):0m?" = "",
       "(, )?Pass:0 \\(.{1,}m\\)" = "",
-      "\n, " = "\n"
+      "\n, " = "\n",
+      "- Star Player" = "- :star:"
     )) %>% 
     collapse("\n\n")
   
@@ -429,21 +431,59 @@ format_fields <- function(league_params, match_data) {
 }
 
 # Construct full embed with ladder position, etc. -----
+competition_ladder <- function(league, competition, platform, this_uuid) {
+  contests <- api_contests(key = api_key, league = league, competition = competition, status = "played", platform = platform)
+  
+  uuids <- contests$upcoming_matches %>% map_chr(pluck,"match_uuid")
+  home <- contests$upcoming_matches %>% map(pluck, "opponents",1,"team") %>% transpose %>% as_data_frame() %>% mutate_all(simplify)
+  away <- contests$upcoming_matches %>% map(pluck, "opponents",2,"team") %>% transpose %>% as_data_frame() %>% mutate_all(simplify)
+  
+  nufflytics:::interleave(bind_cols(home,away, uuid = uuids),bind_cols(away,home, uuid = uuids)) %>% 
+    filter(uuid != this_uuid) %>% 
+    mutate(Win = case_when(score>score1 ~ T, T~F), Tie = case_when(score == score1 ~ T, T~F), Loss = case_when(score1>score ~ T, T~F), TDdiff = score-score1) %>% 
+    group_by(name) %>% 
+    summarise_at(c("Win", "Tie","Loss", "TDdiff"), sum) %>% 
+    mutate(Points = Win*3+Tie) %>% 
+    arrange(desc(Points), desc(TDdiff)) %>% 
+    mutate(Rank = suppressWarnings(ave(order(Points, TDdiff, decreasing = T), Points, TDdiff, FUN = min)))
+}
+
 format_title <- function(coaches) {
   glue("{coaches[[1]]$name} V {coaches[[2]]$name}")
 }
 
-format_description <- function(match_data) {
+format_description <- function(match_data, needs_ladder) {
   home_team <- match_data$match$teams[[1]]
   away_team <- match_data$match$teams[[2]]
+  competition_standing <- ""
+  
+  if(needs_ladder) {
+    
+    placing <- function(place) {
+      case_when(
+        place == 1 ~ "1st",
+        place == 2 ~ "2nd",
+        place == 3 ~ "3rd",
+        TRUE ~ paste0(place,"th")
+      )
+    }
+    
+    ladder <- competition_ladder(match_data$match$leaguename, match_data$match$competitionname, match_data$match$platform, match_data$uuid)
+    
+    home_ranking <- filter(ladder, name == home_team$teamname)
+    away_ranking <- filter(ladder, name == away_team$teamname)
+    
+    
+    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss} {placing(home_ranking$Rank)} V {placing(away_ranking$Rank)} {away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
+  }
   
   if (home_team$score > away_team$score) {home_team$teamname %<>%  md("**")}
   if (away_team$score > home_team$score) {away_team$teamname %<>%  md("**")}
   
   glue(
     "{home_team$teamname} V {away_team$teamname}
-    TV {home_team$value} {id_to_race(home_team$idraces)} {ifelse(league_name == 'REBBL',REBBL_races(id_to_race(home_team$idraces)),'')} V {ifelse(league_name == 'REBBL',REBBL_races(id_to_race(away_team$idraces)),'')} {id_to_race(away_team$idraces)} {away_team$value} TV
-    {md(match_data$match$competitionname,'*')}"
+TV {home_team$value} {id_to_race(home_team$idraces)} {ifelse(league_name == 'REBBL',REBBL_races(id_to_race(home_team$idraces)),'')} V {ifelse(league_name == 'REBBL',REBBL_races(id_to_race(away_team$idraces)),'')} {id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+{md(match_data$match$competitionname,'*')}"
   )
 }
 
@@ -451,7 +491,7 @@ format_embed <- function(league_params, match_data) {
   list(
     list(
       title = format_title(match_data$coaches),
-      description = format_description(match_data),
+      description = format_description(match_data, league_params$ladder),
       url = glue("http://www.mordrek.com/goblinSpy/web/game.html?mid={match_data$uuid}"),
       color = league_params$colour,
       fields = format_fields(league_params, match_data)
@@ -506,4 +546,4 @@ params %>%
   mutate_all(as.character) %>% 
   mutate(last_uuid, has_new_match, last_game = ifelse(has_new_match, last_uuid, last_game)) %>% 
   select(-last_uuid, -has_new_match) %>% 
-  write_tsv(glue("data/{league_name}_parameters.tsv"))
+  write_csv(glue("data/{league_name}_parameters.csv"))
