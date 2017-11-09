@@ -41,8 +41,9 @@ get_new_games <- function(league_params, limit = 1, end = NA, cached_matches = l
   if(league_params$last_game %in% uuids | is.na(league_params$last_game)) {
     new_idx <- match(league_params$last_game, uuids) - 1 # index of oldest unposted game
     
-    #No match means 
-    if(is.na(new_idx)) new_idx <- 0
+    #NA match means that league yet to be initialised, but we have found a match (otherwise would have returned NULL above)
+    #So set index to 1 to return the only match we've found
+    if(is.na(new_idx)) new_idx <- 1
     
     return(matches[0:new_idx])
   } else { # start requesting more games until you find the last one, 3 entries at a time (to reduce size of api requests)
