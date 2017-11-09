@@ -1,0 +1,3 @@
+ID	league	competition	platform	avatar	username	colour	webhook	last_game	stats	injuries	development	impact	fantasy
+BigO	tester	rr2	pc	http://www.nufflytics.com/img/main/BigO_s.png	BigO Match Report	9534470	https://discordapp.com/api/webhooks/326519810739666945/LVgkxHSSd_vs3d4To9chThqPyl-TLyN_smaKuc2WyBvwJtZ29AYXI9UbrW1hFGnh-ttk	10003bcc0b	TRUE	TRUE	TRUE	TRUE	FALSE
+BigO2	tester	rr	pc	http://www.nufflytics.com/img/main/BigO_s.png	BigO Match Report	9534470	https://discordapp.com/api/webhooks/326519810739666945/LVgkxHSSd_vs3d4To9chThqPyl-TLyN_smaKuc2WyBvwJtZ29AYXI9UbrW1hFGnh-ttk	10003bcc0b	TRUE	TRUE	TRUE	TRUE	FALSE
