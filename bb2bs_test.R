@@ -7,9 +7,6 @@ suppressMessages(library(nufflytics))
 ##Setup -----
 league_name <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
-if(testing) {
-  test_type = commandArgs(trailingOnly = T)[2]
-}
 
 api_key <- readRDS("data/api.key")
 
@@ -177,7 +174,7 @@ format_injuries <- function(match_data) {
         stringr::str_replace_all(c("Increase" = "+", "Movement" = "MA", "Armour" = "AV", "Agility" = "AG", "Strength" = "ST")) %>% 
         stringr::str_replace_all("([a-z])([A-Z])", "\\1 \\2")
     }
-      
+    
     # Fix up star players
     if (grepl("StarPlayer", player$type)) {
       player_data$type = "Star Player"
@@ -199,10 +196,10 @@ format_injuries <- function(match_data) {
                         '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% collapse(", ")}
                         {collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
     )) %>%
-    modify_depth(1, ~str_replace_all(.,c("\n *" ="\n", "Dead" = ":skull:", "\\(Star Player\\)" = ":star:"))) %>%
+    modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "Dead" = ":skull:", "\\(Star Player\\)" = ":star:"))) %>%
     modify_depth(1, ~collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
-
+  
   #If injuries in game
   if(length(injury_data) > 0) {
     injury_data %>%
@@ -266,7 +263,7 @@ format_levels <- function(match_data) {
                         '__{name}__ *({type})*: **{spp_old} :arrow_right: {spp_new} SPP**
                         {collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
     )) %>% 
-    modify_depth(1, ~str_replace_all(.,c("\n *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
+    modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
     modify_depth(1, ~collapse(., "\n\n")) %>% 
     extract(map_lgl(., ~(length(.)>0)))
   
@@ -347,7 +344,7 @@ format_impact <- function(match_data, is_fantasy) {
       )
     ) %>% 
     head(3)# %>% 
-   # map(~inset(., "F_string", "")) # Empty string only populated later if using fantasy league
+  # map(~inset(., "F_string", "")) # Empty string only populated later if using fantasy league
   
   #Add fantasy points explicitly if needed
   if(is_fantasy) {
@@ -473,8 +470,10 @@ format_description <- function(match_data, needs_ladder) {
     home_ranking <- filter(ladder, name == home_team$teamname)
     away_ranking <- filter(ladder, name == away_team$teamname)
     
+    if(nrow(home_ranking) == 0) home_ranking <- data_frame(name = home_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
+    if(nrow(away_ranking) == 0) away_ranking <- data_frame(name = away_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
     
-    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss} {placing(home_ranking$Rank)} V {placing(away_ranking$Rank)} {away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
+    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss}{ifelse(home_ranking$Rank>0,str_pad(placing(home_ranking$Rank),1,'left'),'')} V {ifelse(away_ranking$Rank > 0, strpad(placing(away_ranking$Rank),1,'right'),'')}{away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
   }
   
   if (home_team$score > away_team$score) {home_team$teamname %<>%  md("**")}
@@ -482,7 +481,7 @@ format_description <- function(match_data, needs_ladder) {
   
   glue(
     "{home_team$teamname} V {away_team$teamname}
-TV {home_team$value} {id_to_race(home_team$idraces)} {ifelse(league_name == 'REBBL',REBBL_races(id_to_race(home_team$idraces)),'')} V {ifelse(league_name == 'REBBL',REBBL_races(id_to_race(away_team$idraces)),'')} {id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(league_name == 'REBBL',str_pad(REBBL_races(id_to_race(home_team$idraces)), 1, 'left'),'')} V {ifelse(league_name == 'REBBL',str_pad(REBBL_races(id_to_race(away_team$idraces)),1,'right'),'')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
 {md(match_data$match$competitionname,'*')}"
   )
 }
@@ -537,13 +536,15 @@ post_matches <- function(league_params, matches) {
 responses <- map2(params, new_match_data, post_matches)
 
 #Complete, so update with new game uuids (if a more recent game is found)
-last_uuid <- new_games %>% map(pluck,1,"uuid") %>% map_chr(fill_nulls)
-has_new_match <- map_lgl(last_uuid, Negate(is.na))
-
-params %>% 
-  transpose %>% 
-  as_data_frame() %>% 
-  mutate_all(as.character) %>% 
-  mutate(last_uuid, has_new_match, last_game = ifelse(has_new_match, last_uuid, last_game)) %>% 
-  select(-last_uuid, -has_new_match) %>% 
-  write_csv(glue("data/{league_name}_parameters.csv"))
+if(!testing){
+  last_uuid <- new_games %>% map(pluck,1,"uuid") %>% map_chr(fill_nulls)
+  has_new_match <- map_lgl(last_uuid, Negate(is.na))
+  
+  params %>% 
+    transpose %>% 
+    as_data_frame() %>% 
+    mutate_all(as.character) %>% 
+    mutate(last_uuid, has_new_match, last_game = ifelse(has_new_match, last_uuid, last_game)) %>% 
+    select(-last_uuid, -has_new_match) %>% 
+    write_csv(glue("data/{league_name}_parameters.csv"))
+}
