@@ -473,7 +473,7 @@ format_description <- function(match_data, needs_ladder) {
     if(nrow(home_ranking) == 0) home_ranking <- data_frame(name = home_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
     if(nrow(away_ranking) == 0) away_ranking <- data_frame(name = away_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
     
-    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss}{ifelse(home_ranking$Rank>0,str_pad(placing(home_ranking$Rank),1,'left'),'')} V {ifelse(away_ranking$Rank > 0, strpad(placing(away_ranking$Rank),1,'right'),'')}{away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
+    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss}{ifelse(home_ranking$Rank>0,str_c(' ', placing(home_ranking$Rank)),'')} V {ifelse(away_ranking$Rank > 0, str_c(placing(away_ranking$Rank),' '),'')}{away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
   }
   
   if (home_team$score > away_team$score) {home_team$teamname %<>%  md("**")}
@@ -481,7 +481,7 @@ format_description <- function(match_data, needs_ladder) {
   
   glue(
     "{home_team$teamname} V {away_team$teamname}
-TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(league_name == 'REBBL',str_pad(REBBL_races(id_to_race(home_team$idraces)), 1, 'left'),'')} V {ifelse(league_name == 'REBBL',str_pad(REBBL_races(id_to_race(away_team$idraces)),1,'right'),'')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(league_name == 'REBBL',str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(league_name == 'REBBL',str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
 {md(match_data$match$competitionname,'*')}"
   )
 }
