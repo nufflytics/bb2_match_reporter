@@ -260,7 +260,7 @@ format_levels <- function(match_data) {
     modify_depth(1,~.[!map_lgl(., is.null)]) %>% 
     modify_depth(1,~map(.,
                         glue_data,
-                        '__{name}__ *({type})*: **{spp_old} :arrow_right: {spp_new} SPP**
+                        '__{star_player_name(name)}__ *({type})*: **{spp_old} :arrow_right: {spp_new} SPP**
                         {collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
     )) %>% 
     modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
