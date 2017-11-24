@@ -10,6 +10,21 @@ testing <- length(commandArgs(trailingOnly = T)) > 1
 
 api_key <- readRDS("data/api.key")
 
+uuid_to_id <- function(uuid) {
+  if(is.na(uuid)) return(0)
+  uuid %>% str_sub(3) %>% as.hexmode() %>% as.integer()
+}
+
+id_to_uuid <- function(id, platform) {
+  pcode <- switch(platform,
+                  "pc" = "10",
+                  "ps4" = "11",
+                  "xb1" = "12"
+                  )
+  
+  paste0(pcode, id %>% as.hexmode() %>% format(width = 8))
+}
+
 # Read in league parameters -----
 params <- glue("data/{league_name}_parameters.csv") %>% 
   read_csv(col_types = "cccccciccllllll") %>% 
@@ -18,43 +33,46 @@ params <- glue("data/{league_name}_parameters.csv") %>%
 
 # Find any new games for leagues ----- 
 
-# Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
-get_new_games <- function(league_params, limit = 1, end = NA, cached_matches = list()) {
-  
+#Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
+#This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
+get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = list()) {
+
+  if(limit > 20) { #crude timeout function (issue with Sandune's game?)
+    glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
+      collapse("\n") %>%
+      print()
+    return(NULL)
+  }
+
   new_games <- api_matches(
-    key = api_key, 
+    key = api_key,
     limit = limit,
-    league = league_params$league, 
+    league = league_params$league,
     competition = league_params$competition,
     platform = league_params$platform,
     end = end
   )
-  
+
   if(!exists("matches", new_games)) return(NULL)
-  
+
   matches <- c(cached_matches, new_games$matches)
-  
+
   uuids <- matches %>% map(pluck, "uuid")
-  
+
   if(league_params$last_game %in% uuids | is.na(league_params$last_game)) {
-    new_idx <- match(league_params$last_game, uuids) - 1 # index of oldest unposted game
+    return(keep(matches, ~(.$id>uuid_to_id(league_params$last_game))))
     
-    #NA match means that league yet to be initialised, but we have found a match (otherwise would have returned NULL above)
-    #So set index to 1 to return the only match we've found
-    if(is.na(new_idx)) new_idx <- 1
-    
-    return(matches[0:new_idx])
   } else { # start requesting more games until you find the last one, 3 entries at a time (to reduce size of api requests)
     return(
       get_new_games(
-        league_params, 
+        league_params,
         #end = matches %>% map("started") %>% last() %>% lubridate::ymd_hms() %>% magrittr::subtract(lubridate::minutes(1)) %>% format(), # searches by start time for some reason
         #cached_matches = matches,
-        limit = limit + 3
+        limit = limit + 5
       )
     )
   }
-  
+
 }
 
 new_games <- map(params, get_new_games)
@@ -141,7 +159,7 @@ format_stats <- function(match_data) {
   #Format it into a table
   team_stats %>% 
     knitr::kable(
-      col.names = c("", abbr(pluck(match_data, "teams", 1, "name")), paste0(abbr(pluck(match_data, "teams", 2, "name")), "  ")), 
+      col.names = c("", abbr(pluck(match_data, "match", "teams", 1, "teamname")), paste0(abbr(pluck(match_data, "match", "teams", 2, "teamname")), "  ")), 
       format = "pandoc", 
       align = "lrl"
     ) %>% 
@@ -152,7 +170,7 @@ format_stats <- function(match_data) {
 }
 
 format_injuries <- function(match_data) {
-  player_info <- match_data$match$teams %>% map("roster") %>% set_names(match_data$teams %>% map_chr("name"))
+  player_info <- match_data$match$teams %>% map("roster") %>% set_names(match_data$match$teams %>% map_chr("teamname"))
   
   #If no new injuries or only BH, ignore. Otherwise list relevant characteristics
   parse_injuries <- function(player) {
@@ -215,7 +233,7 @@ format_injuries <- function(match_data) {
 }
 
 format_levels <- function(match_data) {
-  player_info <- match_data$match$teams %>% map("roster") %>% set_names(match_data$teams %>% map_chr("name"))
+  player_info <- match_data$match$teams %>% map("roster") %>% set_names(match_data$match$teams %>% map_chr("teamname"))
   level_triggers <- c(6,16,31,51,76,176)
   
   did_level <- function(spp_before, spp_gain) {
@@ -309,7 +327,7 @@ calc_impact <- function(stats) {
 
 format_impact <- function(match_data, is_fantasy) {
   # Slightly different format to the other ones because have to keep team name as well 
-  player_info <- match_data$match$teams %>% set_names(match_data$teams %>% map_chr("name"))
+  player_info <- match_data$match$teams %>% set_names(match_data$match$teams %>% map_chr("teamname"))
   
   parse_impact <- function(player, team_name) {
     player_data <- list(
