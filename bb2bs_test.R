@@ -555,7 +555,17 @@ responses <- map2(params, new_match_data, post_matches)
 
 #Complete, so update with new game uuids (if a more recent game is found)
 if(!testing){
-  last_uuid <- new_games %>% map(pluck,1,"uuid") %>% map_chr(fill_nulls)
+  
+  newest_game <- function(match_list) {
+    if(is_empty(match_list)) return(NA)
+    
+    uuids <- map_chr(match_list, "uuid")
+    ids <- map_int(match_list, "id")
+    
+    uuids[ids==max(ids)]
+  }
+  
+  last_uuid <- new_games %>% map_chr(newest_game) 
   has_new_match <- map_lgl(last_uuid, Negate(is.na))
   
   params %>% 
