@@ -483,15 +483,16 @@ format_description <- function(match_data, needs_ladder) {
       )
     }
     
-    ladder <- competition_ladder(match_data$match$leaguename, match_data$match$competitionname, match_data$match$platform, match_data$uuid)
+    ladder <- api_ladder(api_key, league = match_data$match$leaguename, competition = match_data$match$competitionname)$ranking$team %>% 
+      separate(`w/d/l`, c("Win","Tie","Loss"))
     
     home_ranking <- filter(ladder, name == home_team$teamname)
     away_ranking <- filter(ladder, name == away_team$teamname)
     
-    if(nrow(home_ranking) == 0) home_ranking <- data_frame(name = home_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
-    if(nrow(away_ranking) == 0) away_ranking <- data_frame(name = away_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
+    #if(nrow(home_ranking) == 0) home_ranking <- data_frame(name = home_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
+    #if(nrow(away_ranking) == 0) away_ranking <- data_frame(name = away_team$teamname, Win = 0, Tie = 0, Loss = 0, Rank = 0)
     
-    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss}{ifelse(home_ranking$Rank>0,str_c(' ', placing(home_ranking$Rank)),'')} V {ifelse(away_ranking$Rank > 0, str_c(placing(away_ranking$Rank),' '),'')}{away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
+    competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss} {placing(home_ranking$rank)} V {placing(away_ranking$rank)} {away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
   }
   
   if (home_team$score > away_team$score) {home_team$teamname %<>%  md("**")}
@@ -539,10 +540,11 @@ post_match <- function(league_params, match_data) {
     Sys.sleep(wait_time)
   }
   
-  if (response$status_code == 204) { #all good, just wait a sec in case there's another one
+  if (response$status_code == 204) { #all good, log it and pause for a sec
     Sys.sleep(1)
   }
   
+  print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
   response
 }
 
