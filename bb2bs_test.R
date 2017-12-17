@@ -410,24 +410,24 @@ format_fields <- function(league_params, match_data) {
   }
   
   if(league_params$injuries) {
-    injuries <- format_injuries(match_data)
+    injuries <- format_injuries(match_data) 
     
     if (!is.null(injuries)) {
       fields %<>% append(list(list(
         name = "__**Injury Report**__", 
-        value = injuries,
+        value = injuries %>% stringr::str_replace_all("\n\n+","\n\n"),
         inline = T
       )))
     }
   }
   
   if(league_params$development) {
-    level_ups <- format_levels(match_data)
+    level_ups <- format_levels(match_data)  
     
     if (!is.null(level_ups)) {
       fields %<>% append(list(list(
         name = "__**Player Development**__", 
-        value = level_ups,
+        value = level_ups %>% stringr::str_replace_all("\n\n+","\n\n"),
         inline = T
       )))
     }
