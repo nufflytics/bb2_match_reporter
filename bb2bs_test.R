@@ -35,9 +35,9 @@ params <- glue("data/{league_name}_parameters.csv") %>%
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
-get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = list()) {
+get_new_games <- function(league_params, limit = 20, end = NA, cached_matches = list()) {
 
-  if(limit > 20) { #crude timeout function (issue with Sandune's game?)
+  if(limit > 50) { #crude timeout function (issue with Sandune's game?)
     glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
       collapse("\n") %>%
       print()
@@ -53,16 +53,27 @@ get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = l
     end = end
   )
 
-  if(!exists("matches", new_games)) return(NULL)
+  if(!exists("matches", new_games)) return(NULL) #if no games played, no $matches in the response
 
   matches <- c(cached_matches, new_games$matches)
 
-  uuids <- matches %>% map(pluck, "uuid")
-
-  if(league_params$last_game %in% uuids | is.na(league_params$last_game)) {
-    return(keep(matches, ~(.$id>uuid_to_id(league_params$last_game))))
+  match_table <- data_frame(
+    id = map_int(matches,"id"), 
+    end_time = map_chr(matches, "finished") %>% lubridate::ymd_hms(), 
+    data = matches
+    ) %>% 
+    arrange(desc(end_time))
+  
+  last_seen_id <- uuid_to_id(league_params$last_game)
+  
+  #Check if we have older games than previously seen - ie. if we have gone back far enough to know we have found 'all'(?) new matches (or if this is the first time)
+  if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game)) {
     
-  } else { # start requesting more games until you find the last one, 3 entries at a time (to reduce size of api requests)
+    unposted_matches <- filter(match_table, id > last_seen_id)
+    
+    return(unposted_matches$data)
+    
+  } else { # start requesting more games until you find the last one, 5 entries at a time (to reduce size of api requests)
     return(
       get_new_games(
         league_params,
