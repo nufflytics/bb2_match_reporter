@@ -571,11 +571,8 @@ if(!testing){
   
   newest_game <- function(match_list) {
     if(is_empty(match_list)) return(NA)
-    
-    uuids <- map_chr(match_list, "uuid")
-    ids <- map_int(match_list, "id")
-    
-    uuids[ids==max(ids)]
+
+    match_list %>% map_chr("uuid") %>% .[[1]]
   }
   
   last_uuid <- new_games %>% map_chr(newest_game) 
