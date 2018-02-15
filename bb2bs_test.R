@@ -35,9 +35,9 @@ params <- glue("data/{league_name}_parameters.csv") %>%
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
-get_new_games <- function(league_params, limit = 20, end = NA, cached_matches = list()) {
+get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = list()) {
 
-  if(limit > 50) { #crude timeout function (issue with Sandune's game?)
+  if(limit > 40) { #crude timeout function (issue with Sandune's game?)
     glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
       collapse("\n") %>%
       print()
@@ -117,7 +117,7 @@ abbr <- function(name) {
 
 REBBL_races =  function(r) {switch(r,
                                    "Amazon" = "<:Zon:344918598286049281>",
-                                   "Bretonnia" = "<:Bret:344918238976802826>",
+                                   "Bretonnian" = "<:Bret:344918238976802826>",
                                    "Chaos" = "<:Chaos:344918252155305984>",
                                    "Chaos Dwarf" = "<:Chorf:344918276121427968>",
                                    "Dark Elf" = "<:Delf:344918286888337409>",
