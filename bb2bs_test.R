@@ -8,6 +8,9 @@ suppressMessages(library(nufflytics))
 league_name <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
+test_type <- ""
+if(testing) test_type = commandArgs(trailingOnly = T)[2]
+
 api_key <- readRDS("data/api.key")
 
 uuid_to_id <- function(uuid) {
@@ -67,7 +70,8 @@ get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = l
   last_seen_id <- uuid_to_id(league_params$last_game)
   
   #Check if we have older games than previously seen - ie. if we have gone back far enough to know we have found 'all'(?) new matches (or if this is the first time)
-  if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game)) {
+  #Or if all we want is to update to the latest game without posting anything
+  if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update") {
     
     unposted_matches <- filter(match_table, id > last_seen_id)
     
@@ -563,11 +567,12 @@ post_matches <- function(league_params, matches) {
   map(matches, ~post_match(league_params, .))
 }
 
-
-responses <- map2(params, new_match_data, post_matches)
+if(test_type != "update") { # don't post if all you want to do is update to the latest match
+  responses <- map2(params, new_match_data, post_matches)
+}
 
 #Complete, so update with new game uuids (if a more recent game is found)
-if(!testing){
+if(!testing | test_type == "update"){
   
   newest_game <- function(match_list) {
     if(is_empty(match_list)) return(NA)
