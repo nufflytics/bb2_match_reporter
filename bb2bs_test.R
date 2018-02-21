@@ -3,9 +3,10 @@ suppressMessages(library(magrittr))
 suppressMessages(library(glue))
 suppressMessages(library(stringr))
 suppressMessages(library(nufflytics))
+suppressMessages(library(googlesheets))
 
 ##Setup -----
-league_name <- commandArgs(trailingOnly = T)[1]
+league_key <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
 test_type <- ""
@@ -23,30 +24,39 @@ id_to_uuid <- function(id, platform) {
                   "pc" = "10",
                   "ps4" = "11",
                   "xb1" = "12"
-                  )
+  )
   
   paste0(pcode, id %>% as.hexmode() %>% format(width = 8))
 }
 
+gs_auth(token = "data/token.rds")
+params_sheet <-gs_key(league_key)
+
 # Read in league parameters -----
-params <- glue("data/{league_name}_parameters.csv") %>% 
-  read_csv(col_types = "cccccciccllllll") %>% 
-  as.list %>% 
-  transpose(.names = .$ID)
+read_params <- function(gsheet) {
+  gsheet %>% 
+    gs_read(ws = "Settings", col_types = "cccccccccllllll") %>% 
+    as.list %>% 
+    transpose(.names = .$ID) %>% 
+    keep(!is.na(names(.))) %>% #remove empty rows
+    map(~modify_at(.,"colour", ~(.x %>% str_replace("#","") %>% as.hexmode() %>% as.integer()))) # convert hexcodes into integer colours
+}
+
+params <- read_params(params_sheet)
 
 # Find any new games for leagues ----- 
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
 get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = list()) {
-
+  
   if(limit > 40) { #crude timeout function (issue with Sandune's game?)
     glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
       collapse("\n") %>%
       print()
     return(NULL)
   }
-
+  
   new_games <- api_matches(
     key = api_key,
     limit = limit,
@@ -55,16 +65,16 @@ get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = l
     platform = league_params$platform,
     end = end
   )
-
+  
   if(!exists("matches", new_games)) return(NULL) #if no games played, no $matches in the response
-
+  
   matches <- c(cached_matches, new_games$matches)
-
+  
   match_table <- data_frame(
     id = map_int(matches,"id"), 
     end_time = map_chr(matches, "finished") %>% lubridate::ymd_hms(), 
     data = matches
-    ) %>% 
+  ) %>% 
     arrange(desc(end_time))
   
   last_seen_id <- uuid_to_id(league_params$last_game)
@@ -87,7 +97,7 @@ get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = l
       )
     )
   }
-
+  
 }
 
 new_games <- map(params, get_new_games)
@@ -241,7 +251,7 @@ format_injuries <- function(match_data) {
           "**{.y}**
           {.x}"
         )
-      ) %>%
+        ) %>%
       collapse("\n\n")
   } else {NULL}
   
@@ -308,7 +318,7 @@ format_levels <- function(match_data) {
           "**{.y}**
           {.x}"
         )
-      ) %>% 
+        ) %>% 
       collapse("\n\n")
   } else {NULL}
   
@@ -515,8 +525,8 @@ format_description <- function(match_data, needs_ladder) {
   
   glue(
     "{home_team$teamname} V {away_team$teamname}
-TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(league_name == 'REBBL',str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(league_name == 'REBBL',str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
-{md(match_data$match$competitionname,'*')}"
+    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(league_key %in% c('1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4','1d9G60aKf3hyhvHg1e0L1LOEw_dTxr7BqpNpVktM7LGQ'),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(league_key %in% c('1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4','1d9G60aKf3hyhvHg1e0L1LOEw_dTxr7BqpNpVktM7LGQ'), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+    {md(match_data$match$competitionname,'*')}"
   )
 }
 
@@ -542,7 +552,7 @@ post_match <- function(league_params, match_data) {
   response <- httr::POST(
     url = league_params$webhook,
     body = list(
-      username = league_params$username,
+      username = str_trunc(league_params$username, 32, side="right", ellipsis = ""),
       avatar_url = league_params$avatar,
       embeds = format_embed(league_params, match_data)
     ),
@@ -576,18 +586,22 @@ if(!testing | test_type == "update"){
   
   newest_game <- function(match_list) {
     if(is_empty(match_list)) return(NA)
-
+    
     match_list %>% map_chr("uuid") %>% .[[1]]
   }
   
   last_uuid <- new_games %>% map_chr(newest_game) 
   has_new_match <- map_lgl(last_uuid, Negate(is.na))
   
+  #refetch params from sheet in case they have been edited
+  params <- read_params(params_sheet)
+  
+  #update with latest game id and rerwite to google sheet
   params %>% 
     transpose %>% 
     as_data_frame() %>% 
     mutate_all(as.character) %>% 
-    mutate(last_uuid, has_new_match, last_game = ifelse(has_new_match, last_uuid, last_game)) %>% 
+    mutate(last_uuid, has_new_match, last_game = ifelse(has_new_match, last_uuid, last_game), colour = colour %>% as.integer() %>% as.hexmode() %>% format(width=6) %>% str_c("#",.)) %>% 
     select(-last_uuid, -has_new_match) %>% 
-    write_csv(glue("data/{league_name}_parameters.csv"))
+    gs_edit_cells(params_sheet, ws = "Settings", input=.)
 }
