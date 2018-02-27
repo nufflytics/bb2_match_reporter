@@ -559,7 +559,7 @@ post_match <- function(league_params, match_data, times = 0) {
   
   response <- list(status_code = 400)
   
-  if (times <= 10) {
+  if (times <= 5) {
     response <- httr::POST(
       url = league_params$webhook,
       body = list(
@@ -580,11 +580,12 @@ post_match <- function(league_params, match_data, times = 0) {
       Sys.sleep(1)
     }
     
-    if (response$status_code == 400) { #failed, wait and retry once a second for 10 seconds
-      Sys.sleep(1)
+    if (response$status_code == 400) { #failed, wait and retry later
+      Sys.sleep(10)
       post_match(league_params, match_data, times = times + 1)
     }
   }
+
   print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
   response
 }
