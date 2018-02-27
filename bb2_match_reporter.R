@@ -551,7 +551,7 @@ format_embed <- function(league_params, match_data) {
 }
 
 
-# Post matches to discord
+# Post matches to discord ----
 post_match <- function(league_params, match_data, times = 0) {
   
   #nbsupporters = 0 means admin decided game, mvps = 0|2 means conceded game
@@ -585,7 +585,7 @@ post_match <- function(league_params, match_data, times = 0) {
       post_match(league_params, match_data, times = times + 1)
     }
   }
-
+  
   print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
   response
 }
@@ -598,7 +598,7 @@ if(test_type != "update") { # don't post if all you want to do is update to the 
   responses <- map2(params, new_match_data, post_matches)
 }
 
-#Complete, so update with new game uuids (if a more recent game is found)
+#Complete, so update with new game uuids (if a more recent game is found)----
 if(!testing | test_type == "update"){
   
   newest_game <- function(match_list) {
