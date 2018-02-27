@@ -526,8 +526,15 @@ format_description <- function(match_data, needs_ladder) {
   
   glue(
     "{home_team$teamname} V {away_team$teamname}
-    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(league_key %in% c('1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4','1d9G60aKf3hyhvHg1e0L1LOEw_dTxr7BqpNpVktM7LGQ'),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(league_key %in% c('1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4','1d9G60aKf3hyhvHg1e0L1LOEw_dTxr7BqpNpVktM7LGQ'), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(grepl('REBBL', matcs_data$match$leaguename),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(grepl('REBBL', matcs_data$match$leaguename), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
     {md(match_data$match$competitionname,'*')}"
+  )
+}
+
+format_url <- function(league, uuid) {
+  case_when(
+    grepl("MML", league) ~ glue("http://www.bb2leaguemanager.com/Leaderboard/match_detail.php?match_uuid={uuid}") %>% as.character(),
+    TRUE ~ glue("http://www.mordrek.com/goblinSpy/web/game.html?mid={uuid}") %>% as.character()
   )
 }
 
@@ -536,7 +543,7 @@ format_embed <- function(league_params, match_data) {
     list(
       title = format_title(match_data$coaches),
       description = format_description(match_data, league_params$ladder),
-      url = glue("http://www.mordrek.com/goblinSpy/web/game.html?mid={match_data$uuid}"),
+      url = format_url(league_params$league, match_data$uuid),
       color = league_params$colour,
       fields = format_fields(league_params, match_data)
     )
