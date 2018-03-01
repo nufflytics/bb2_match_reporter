@@ -526,7 +526,7 @@ format_description <- function(match_data, needs_ladder) {
   
   glue(
     "{home_team$teamname} V {away_team$teamname}
-    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(grepl('REBBL', matcs_data$match$leaguename),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(grepl('REBBL', matcs_data$match$leaguename), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(grepl('REBBL', match_data$match$leaguename),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(grepl('REBBL', match_data$match$leaguename), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
     {md(match_data$match$competitionname,'*')}"
   )
 }
