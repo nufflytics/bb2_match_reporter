@@ -67,6 +67,7 @@ get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = l
     end = end
   )
   
+  if(is_logical(new_games)) return(NULL) #api returns false if no competitions started in the league
   if(!exists("matches", new_games)) return(NULL) #if no games played, no $matches in the response
   
   matches <- c(cached_matches, new_games$matches)
