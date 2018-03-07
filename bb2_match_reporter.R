@@ -558,7 +558,6 @@ post_match <- function(league_params, match_data, times = 0) {
   #nbsupporters = 0 means admin decided game, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "teams", 1, "nbsupporters") == 0 | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
   
-
     response <- httr::POST(
       url = league_params$webhook,
       body = list(
@@ -581,9 +580,8 @@ post_match <- function(league_params, match_data, times = 0) {
     
     if (response$status_code == 400) { #failed, wait and retry later
       print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
-      quit(save = "n")
+      break()
     }
-
   
   print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
   response
@@ -624,3 +622,4 @@ if(!testing | test_type == "update"){
     select(-last_uuid, -has_new_match) %>% 
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
 }
+
