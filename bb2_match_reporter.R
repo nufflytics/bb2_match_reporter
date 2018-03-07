@@ -555,8 +555,8 @@ format_embed <- function(league_params, match_data) {
 # Post matches to discord ----
 post_match <- function(league_params, match_data, times = 0) {
   
-  #nbsupporters = 0 means admin decided game, mvps = 0|2 means conceded game
-  if(pluck(match_data, "match", "teams", 1, "nbsupporters") == 0 | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
+  #started == finished are admin decided games, mvps = 0|2 means conceded game
+  if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
   
     response <- httr::POST(
       url = league_params$webhook,
@@ -574,13 +574,8 @@ post_match <- function(league_params, match_data, times = 0) {
       Sys.sleep(wait_time)
     }
     
-    if (response$status_code == 204) { #all good, log it and pause for a sec
+    if (response$status_code %in% c(204,400)) { #log it and pause for a sec
       Sys.sleep(1)
-    }
-    
-    if (response$status_code == 400) { #failed, wait and retry later
-      print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
-      break()
     }
   
   print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
