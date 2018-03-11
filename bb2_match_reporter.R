@@ -558,14 +558,15 @@ post_match <- function(league_params, match_data, times = 0) {
   #started == finished are admin decided games, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
   
-    response <- httr::POST(
+    response <- httr::RETRY("POST",
       url = league_params$webhook,
       body = list(
         username = str_trunc(league_params$username, 32, side="right", ellipsis = ""),
         avatar_url = league_params$avatar,
         embeds = format_embed(league_params, match_data)
       ),
-      encode = "json"
+      encode = "json",
+      times = 10
     )
     
     if (response$status_code == 429) { #rate limited
