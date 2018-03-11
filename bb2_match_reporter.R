@@ -134,6 +134,7 @@ abbr <- function(name) {
 REBBL_races =  function(r) {switch(r,
                                    "Amazon" = "<:Zon:344918598286049281>",
                                    "Bretonnian" = "<:Bret:344918238976802826>",
+                                   "Brettonian" = "<:Bret:344918238976802826>",
                                    "Chaos" = "<:Chaos:344918252155305984>",
                                    "Chaos Dwarf" = "<:Chorf:344918276121427968>",
                                    "Dark Elf" = "<:Delf:344918286888337409>",
