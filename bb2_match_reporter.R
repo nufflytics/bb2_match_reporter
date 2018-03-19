@@ -9,9 +9,12 @@ suppressMessages(library(googlesheets))
 league_key <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
-#Sanity check that no other versions for this league are running
-n_processes <- length(system2('ps', args = glue::glue('-fp $(pgrep -f "{league_key} >>")'), stdout = T, stderr = NULL))-1 
-if (n_processes > 1) stop("Already running")
+#Check if already running
+if(length(list.files(path = "data/", pattern = glue("{league_key}.lock"))) > 0) {
+  stop(lubridate::now(), " Already running")
+  } else {
+  write_file("",glue("data/{league_key}.lock"))
+  }
 
 test_type <- ""
 if(testing) test_type = commandArgs(trailingOnly = T)[2]
@@ -22,6 +25,7 @@ uuid_to_id <- function(uuid) {
   if(is.na(uuid)) return(0)
   uuid %>% str_sub(3) %>% as.hexmode() %>% as.integer()
 }
+
 
 id_to_uuid <- function(id, platform) {
   pcode <- switch(platform,
@@ -625,3 +629,4 @@ if(!testing | test_type == "update"){
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
 }
 
+on.exit(system2("rm", glue("data/{league_key}.lock")))
