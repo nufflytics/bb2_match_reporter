@@ -10,10 +10,10 @@ league_key <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
 #Check if already running
-if(length(list.files(path = "data/", pattern = glue("{league_key}.lock"))) > 0) {
+if(length(list.files(path = "data/lock/", pattern = glue("{league_key}.lock"))) > 0) {
   stop(lubridate::now(), " Already running")
   } else {
-  write_file("",glue("data/{league_key}.lock"))
+  write_file("",glue("data/lock/{league_key}.lock"))
   }
 
 test_type <- ""
@@ -629,4 +629,4 @@ if(!testing | test_type == "update"){
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
 }
 
-system2("rm", glue("data/{league_key}.lock"))
+system2("rm", glue("data/lock/{league_key}.lock"))
