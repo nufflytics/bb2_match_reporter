@@ -9,6 +9,10 @@ suppressMessages(library(googlesheets))
 league_key <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
+#Sanity check
+n_processes <- system2(glue::glue('ps', args = '-fp $(pgrep -f {league_key})'), stdout = T, stderr = NULL) %>% length
+if (n_processes > 0) stop("Already running")
+
 test_type <- ""
 if(testing) test_type = commandArgs(trailingOnly = T)[2]
 
@@ -49,13 +53,12 @@ params <- read_params(params_sheet)
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
-get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = list()) {
+get_new_games <- function(league_params, limit = 10, end = NA, cached_matches = list()) {
   
-  if(limit > 40) { #crude timeout function (issue with Sandune's game?)
+  if(limit > 50) { #crude timeout function (issue with Sandune's game?)
     glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
       collapse("\n") %>%
       print()
-    return(NULL)
   }
   
   new_games <- api_matches(
@@ -83,19 +86,20 @@ get_new_games <- function(league_params, limit = 5, end = NA, cached_matches = l
   
   #Check if we have older games than previously seen - ie. if we have gone back far enough to know we have found 'all'(?) new matches (or if this is the first time)
   #Or if all we want is to update to the latest game without posting anything
-  if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update") {
+  #Or if we have hit the 50 game search limit and just want to process the games found that far back
+  if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
     
     unposted_matches <- filter(match_table, id > last_seen_id)
     
     return(unposted_matches$data)
     
-  } else { # start requesting more games until you find the last one, 5 entries at a time (to reduce size of api requests)
+  } else { # start requesting more games until you find the last one, 20 entries at a time (to reduce size of api requests)
     return(
       get_new_games(
         league_params,
         #end = matches %>% map("started") %>% last() %>% lubridate::ymd_hms() %>% magrittr::subtract(lubridate::minutes(1)) %>% format(), # searches by start time for some reason
         #cached_matches = matches,
-        limit = limit + 5
+        limit = limit + 20
       )
     )
   }
@@ -567,7 +571,8 @@ post_match <- function(league_params, match_data, times = 0) {
         embeds = format_embed(league_params, match_data)
       ),
       encode = "json",
-      times = 10
+      times = 20,
+      pause_min = 5
     )
     
     if (response$status_code == 429) { #rate limited
