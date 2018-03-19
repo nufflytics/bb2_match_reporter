@@ -9,9 +9,9 @@ suppressMessages(library(googlesheets))
 league_key <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
-#Sanity check
-n_processes <- system2(glue::glue('ps', args = '-fp $(pgrep -f {league_key})'), stdout = T, stderr = NULL) %>% length
-if (n_processes > 0) stop("Already running")
+#Sanity check that no other versions for this league are running
+n_processes <- length(system2(glue::glue('ps', args = '-fp $(pgrep -f {league_key} >>)'), stdout = T, stderr = NULL))-1 
+if (n_processes > 1) stop("Already running")
 
 test_type <- ""
 if(testing) test_type = commandArgs(trailingOnly = T)[2]
