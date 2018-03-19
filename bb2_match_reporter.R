@@ -629,4 +629,4 @@ if(!testing | test_type == "update"){
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
 }
 
-on.exit(system2("rm", glue("data/{league_key}.lock")))
+system2("rm", glue("data/{league_key}.lock"))
