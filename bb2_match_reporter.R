@@ -10,7 +10,7 @@ league_key <- commandArgs(trailingOnly = T)[1]
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
 #Sanity check that no other versions for this league are running
-n_processes <- length(system2(glue::glue('ps', args = '-fp $(pgrep -f {league_key} >>)'), stdout = T, stderr = NULL))-1 
+n_processes <- length(system2('ps', args = glue::glue('-fp $(pgrep -f "{league_key} >>")'), stdout = T, stderr = NULL))-1 
 if (n_processes > 1) stop("Already running")
 
 test_type <- ""
