@@ -43,7 +43,7 @@ params_sheet <-gs_key(league_key)
 # Read in league parameters -----
 read_params <- function(gsheet) {
   gsheet %>% 
-    gs_read(ws = "Settings", col_types = "cccccccccllllll") %>% 
+    gs_read(ws = "Settings", col_types = "cccccccccllllll", trim_ws = F) %>% 
     mutate(last_game = str_replace(last_game, "#","")) %>% 
     as.list %>% 
     transpose(.names = .$ID) %>% 
