@@ -541,9 +541,10 @@ format_description <- function(match_data, needs_ladder) {
   )
 }
 
-format_url <- function(league, uuid) {
+format_url <- function(league, uuid, comp) {
   case_when(
     grepl("MML", league) ~ glue("http://www.bb2leaguemanager.com/Leaderboard/match_detail.php?match_uuid={uuid}") %>% as.character(),
+    grepl("Zena|ZXL", league) ~ glue("http://www.mordrek.com/goblinSpy/web/goblinSpy.html?league={league}&competition={comp}&q=*front") %>% as.character(),
     TRUE ~ glue("http://www.mordrek.com/goblinSpy/web/game.html?mid={uuid}") %>% as.character()
   )
 }
@@ -553,7 +554,7 @@ format_embed <- function(league_params, match_data) {
     list(
       title = format_title(match_data$coaches),
       description = format_description(match_data, league_params$ladder),
-      url = format_url(league_params$league, match_data$uuid),
+      url = format_url(league_params$league, match_data$uuid, league_params$competition),
       color = league_params$colour,
       fields = format_fields(league_params, match_data)
     )
