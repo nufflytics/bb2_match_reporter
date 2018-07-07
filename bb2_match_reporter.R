@@ -117,6 +117,7 @@ get_new_games <- function(league_params, last_match, limit = 10) {
       return(
         get_new_games(
           league_params,
+          last_match,
           #end = matches %>% map("started") %>% last() %>% lubridate::ymd_hms() %>% magrittr::subtract(lubridate::minutes(1)) %>% format(), # searches by start time for some reason
           #cached_matches = matches,
           limit = limit + 20
