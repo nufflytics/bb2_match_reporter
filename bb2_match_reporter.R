@@ -44,7 +44,7 @@ params_sheet <-gs_key(league_key)
 read_params <- function(gsheet) {
   gsheet %>% 
     gs_read(ws = "Settings", col_types = "ccccccccllllllcc", trim_ws = F) %>% 
-    mutate(last_game = str_replace(last_game, "#","")) %>% 
+    mutate(last_game = str_remove(last_game, "#"), last_date = str_remove(last_date, "^d ")) %>% 
     as.list %>% 
     transpose(.names = .$ID) %>% 
     keep(!is.na(names(.))) %>% #remove empty rows
@@ -656,7 +656,7 @@ if(!testing | test_type == "update"){
       has_new_match, 
       last_game = ifelse(has_new_match, last_uuid, last_game) %>% str_c("#",.), 
       colour = colour %>% as.integer() %>% as.hexmode() %>% format(width=6) %>% str_c("#",.),
-      last_date = last_matches_date
+      last_date = paste0("d ", last_matches_date)
       ) %>% 
     select(-last_uuid, -has_new_match) %>% 
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
