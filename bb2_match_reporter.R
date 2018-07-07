@@ -526,8 +526,10 @@ format_description <- function(match_data, needs_ladder) {
     
       home_ranking <- filter(ladder, name == home_team$teamname)
       away_ranking <- filter(ladder, name == away_team$teamname)
-    
-      competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss} {placing(home_ranking$rank)} V {placing(away_ranking$rank)} {away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
+      
+      if(nrow(home_ranking == 1) & nrow(away_ranking == 1)) {
+        competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss} {placing(home_ranking$rank)} V {placing(away_ranking$rank)} {away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
+      }
     }
   }
   
