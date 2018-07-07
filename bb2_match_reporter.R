@@ -105,9 +105,9 @@ get_new_games <- function(league_params, last_match, limit = 10) {
     #Or if we have hit the 50 game search limit and just want to process the games found that far back
     if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
       
-      glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, has new games since {last_date} ({last_match})") %>%
-        collapse("\n") %>%
-        print()
+      # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, has new games since {last_date} ({last_match})") %>%
+      #   collapse("\n") %>%
+      #   print()
       
       unposted_matches <- filter(match_table, id > last_seen_id)
       
@@ -125,9 +125,9 @@ get_new_games <- function(league_params, last_match, limit = 10) {
       )
     }
   } else { # no new matches in league
-    glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, no new games since {last_date}") %>%
-      collapse("\n") %>%
-      print()
+    # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, no new games since {last_date}") %>%
+    #   collapse("\n") %>%
+    #   print()
     
     return(NULL)
   }
