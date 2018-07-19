@@ -58,10 +58,10 @@ params <- read_params(params_sheet)
 get_last_match <- function(league_params) {
   league_ret <- api_league(api_key, league = league_params$league, platform = league_params$platform)
   
-  if( "league" %in% names(league_ret)) {
+  if( "date_last_match" %in% names(league_ret$league)) {
     return(league_ret$league$date_last_match)
   } else {
-    return(NA_character_)
+    return(FALSE)
   }
 }
 
