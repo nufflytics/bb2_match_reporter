@@ -274,7 +274,7 @@ format_injuries <- function(match_data) {
                         '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue_collapse(", ")}
                         {glue_collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
     )) %>%
-    modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "Dead" = ":skull:", "\\(Star Player\\)" = ":star:"))) %>%
+    modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "Dead" = "<:Dead:311936561069555712>", "\\(Star Player\\)" = ":star:"))) %>%
     modify_depth(1, ~glue_collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
   
@@ -475,7 +475,7 @@ format_fields <- function(league_params, match_data) {
     if (!is.null(injuries)) {
       fields %<>% append(list(list(
         name = "__**Injury Report**__", 
-        value = injuries %>% stringr::str_replace_all("\n\n+","\n\n"),
+        value = injuries %>% stringr::str_replace_all(c("\n\n+"="\n\n", ":dead:"="<:Dead:311936561069555712>", ":AtkDown:"="<:AtkDown:311936485098258442>")),
         inline = T
       )))
     }
@@ -487,16 +487,16 @@ format_fields <- function(league_params, match_data) {
     if (!is.null(level_ups)) {
       fields %<>% append(list(list(
         name = "__**Player Development**__", 
-        value = level_ups %>% stringr::str_replace_all("\n\n+","\n\n"),
+        value = level_ups %>% stringr::str_replace_all(c("\n\n+"="\n\n", ":dead:"="<:Dead:311936561069555712>", ":AtkDown:"="<:AtkDown:311936485098258442>")),
         inline = T
       )))
     }
   }
-  
+
   if(league_params$impact) {
     fields %<>% append(list(list(
       name = "__**Impact Players**__", 
-      value = format_impact(match_data, league_params$fantasy),
+      value = format_impact(match_data, league_params$fantasy) %>% stringr::str_replace_all(c("\n\n+"="\n\n", ":dead:"="<:Dead:311936561069555712>", ":AtkDown:"="<:AtkDown:311936485098258442>")),
       inline = T
     )))
   }
@@ -525,6 +525,22 @@ competition_ladder <- function(league, competition, platform, this_uuid) {
 
 format_title <- function(coaches) {
   glue("{coaches[[1]]$name} V {coaches[[2]]$name}")
+}
+
+format_teamname <- function(team, match_data) {
+  if (league_key == "1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4") {
+    glue::glue("[{team$teamname}](http://rebbl.net/rebbl/team/{team$idteamlisting})")
+  } else {
+    team$teamname
+  }
+}
+
+format_division <- function(match_data) {
+  if (league_key == "1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4") {
+    glue::glue("[{md(match_data$match$competitionname,'*')}](http://rebbl.net/rebbl/{URLencode(match_data$match$leaguename %>% str_remove('REBBL - '))}#{URLencode(match_data$match$competitionname)})")
+  } else {
+    md(match_data$match$competitionname,'*')
+  }
 }
 
 format_description <- function(match_data, needs_ladder) {
@@ -561,9 +577,9 @@ format_description <- function(match_data, needs_ladder) {
   if (away_team$score > home_team$score) {away_team$teamname %<>%  md("**")}
   
   glue(
-    "{home_team$teamname} V {away_team$teamname}
+    "{format_teamname(home_team, match_data)} V {format_teamname(away_team, match_data)}
     TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(grepl('REBBL', match_data$match$leaguename),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(grepl('REBBL', match_data$match$leaguename), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
-    {md(match_data$match$competitionname,'*')}"
+    {format_division(match_data)}"
   )
 }
 
