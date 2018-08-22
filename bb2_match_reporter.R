@@ -73,7 +73,7 @@ get_new_games <- function(league_params, last_match, limit = 10) {
   #browser()
   if(limit > 50) { #crude timeout function (issue with Sandune's game?)
     glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
-      collapse("\n") %>%
+      glue_collapse("\n") %>%
       print()
   }
   
@@ -106,7 +106,7 @@ get_new_games <- function(league_params, last_match, limit = 10) {
     if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
       
       # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, has new games since {last_date} ({last_match})") %>%
-      #   collapse("\n") %>%
+      #   glue_collapse("\n") %>%
       #   print()
       
       unposted_matches <- filter(match_table, id > last_seen_id)
@@ -126,7 +126,7 @@ get_new_games <- function(league_params, last_match, limit = 10) {
     }
   } else { # no new matches in league
     # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, no new games since {last_date}") %>%
-    #   collapse("\n") %>%
+    #   glue_collapse("\n") %>%
     #   print()
     
     return(NULL)
@@ -156,10 +156,10 @@ md <- function(text, markup) {glue("{markup}{text}{markup}")}
 #Abbreviate team names
 abbr <- function(name) {
   name %>%
-    stringr::str_replace_all("\\[(.*)\\]","") %>% # strip out 'clan' tags
-    stringr::str_replace_all("\\((.*)\\)", " ( \\1 )") %>% # Put spaces around brackets, so eg. USS Sulaco (REL Chapter) is abbreviated to US(RC)
+    stringr::str_replace("\\[(.*?)\\]","") %>% # strip out 'clan' tags
+    stringr::str_replace_all("\\((.*?)\\)", " ( \\1 )") %>% # Put spaces around brackets, so eg. USS Sulaco (REL Chapter) is abbreviated to US(RC)
     stringr::str_replace_all("([a-z_.-])([A-Z])", "\\1 \\2") %>%  # add a space before mid-word capitals and 'word separator' punctuation (_.-) followed by a capital
-    stringr::str_replace_all("[&!,'\"*]",'') %>% # delete these characters
+    stringr::str_replace_all("[\\[\\]&!,'\"*]",'') %>% # delete these characters
     abbreviate(1)
 }
 
@@ -224,7 +224,7 @@ format_stats <- function(match_data) {
       align = "lrl"
     ) %>% 
     extract(-2) %>% # Remove knitr underlines
-    collapse(sep = "\n") %>% #Make single string
+    glue_collapse(sep = "\n") %>% #Make single string
     paste0("Python\n",.) %>% #Add code language marker to get some text colouring
     md("```") #Wrap in code block markup
 }
@@ -271,11 +271,11 @@ format_injuries <- function(match_data) {
     modify_depth(1,~.[!map_lgl(., is.null)]) %>% 
     modify_depth(1,~map(.,
                         glue_data,
-                        '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% collapse(", ")}
-                        {collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
+                        '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue_collapse(", ")}
+                        {glue_collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
     )) %>%
     modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "Dead" = ":skull:", "\\(Star Player\\)" = ":star:"))) %>%
-    modify_depth(1, ~collapse(., "\n\n")) %>%
+    modify_depth(1, ~glue_collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
   
   #If injuries in game
@@ -287,7 +287,7 @@ format_injuries <- function(match_data) {
           {.x}"
         )
       ) %>%
-      collapse("\n\n")
+      glue_collapse("\n\n")
   } else {NULL}
   
 }
@@ -339,10 +339,10 @@ format_levels <- function(match_data) {
     modify_depth(1,~map(.,
                         glue_data,
                         '__{star_player_name(name)}__ *({type})*: **{spp_old} :arrow_right: {spp_new} SPP**
-                        {collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
+                        {glue_collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
     )) %>% 
     modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
-    modify_depth(1, ~collapse(., "\n\n")) %>% 
+    modify_depth(1, ~glue_collapse(., "\n\n")) %>% 
     extract(map_lgl(., ~(length(.)>0)))
   
   # If injuries in game 
@@ -354,7 +354,7 @@ format_levels <- function(match_data) {
           {.x}"
         )
       ) %>% 
-      collapse("\n\n")
+      glue_collapse("\n\n")
   } else {NULL}
   
 }
@@ -455,7 +455,7 @@ format_impact <- function(match_data, is_fantasy) {
       "\n, " = "\n",
       "- Star Player" = "- :star:"
     )) %>% 
-    collapse("\n\n")
+    glue_collapse("\n\n")
   
 }
 
