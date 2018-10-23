@@ -24,7 +24,7 @@ api_key <- readRDS("data/api.key")
 rebbl_emotify <- function(s) {
   s %>% stringr::str_replace_all(c(
     "\n\n+"="\n\n", 
-    ":dead:"="<:Dead:311936561069555712>", 
+    ":[D|d]ead:"="<:Dead:311936561069555712>", 
     ":AtkDown:"="<:AtkDown:311936485098258442>",
     ":Ogre:" = "<:Ogre:344918473832660992>",
     ":Blitz:" = "<:Blitz:311936522121117706>",
