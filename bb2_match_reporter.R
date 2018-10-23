@@ -57,8 +57,8 @@ params_sheet <-gs_key(league_key)
 # Read in league parameters -----
 read_params <- function(gsheet) {
   gsheet %>% 
-    gs_read(ws = "Settings", col_types = "ccccccccllllllcc", trim_ws = F) %>% 
-    mutate(last_game = str_remove(last_game, "#"), last_date = str_remove(last_date, "^d ")) %>% 
+    gs_read(ws = "Settings", col_types = "ccccccccllllllc", trim_ws = F) %>% 
+    mutate(last_game = str_remove(last_game, "#")) %>% 
     as.list %>% 
     transpose(.names = .$ID) %>% 
     keep(!is.na(names(.))) %>% #remove empty rows
@@ -69,86 +69,122 @@ params <- read_params(params_sheet)
 
 # Find any new games for leagues ----- 
 
-get_last_match <- function(league_params) {
-  league_ret <- api_league(api_key, league = league_params$league, platform = league_params$platform)
-  
-  if( "date_last_match" %in% names(league_ret$league)) {
-    return(league_ret$league$date_last_match)
-  } else {
-    return(FALSE)
-  }
-}
-
-last_matches_date <- map_chr(params, get_last_match)
+# get_last_match <- function(league_params) {
+#   league_ret <- api_league(api_key, league = league_params$league, platform = league_params$platform)
+#   
+#   if( "date_last_match" %in% names(league_ret$league)) {
+#     return(league_ret$league$date_last_match)
+#   } else {
+#     return(FALSE)
+#   }
+# }
+# 
+#last_matches_date <- map_chr(params, get_last_match)
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
-get_new_games <- function(league_params, last_match, limit = 50) {
-  #browser()
-  if(limit > 50) { #crude timeout function (issue with Sandune's game?)
-    glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
-      glue_collapse("\n") %>%
-      print()
-  }
+get_new_games <- function(league_params, limit = 50) {
+  ##browser()
+  # if(limit > 50) { #crude timeout function (issue with Sandune's game?)
+  #   glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
+  #     glue_collapse("\n") %>%
+  #     print()
+  # }
+  # 
+  # if (is.na(league_params$last_date) | league_params$last_date != last_match) { # check cached date of last match finished
+  #   new_games <- api_matches(
+  #     key = api_key,
+  #     limit = limit,
+  #     league = league_params$league,
+  #     competition = league_params$competition,
+  #     platform = league_params$platform
+  #   )
+  #   
+  #   if(is_logical(new_games)) return(NULL) #api returns false if no competitions started in the league
+  #   if(!exists("matches", new_games)) return(NULL) #if no games played, no $matches in the response
+  #   
+  #   matches <- c(new_games$matches)
+  #   
+  #   match_table <- data_frame(
+  #     id = map_int(matches,"id"), 
+  #     end_time = map_chr(matches, "finished") %>% lubridate::ymd_hms(), 
+  #     data = matches
+  #   ) %>% 
+  #     arrange(desc(end_time))
+  #   
+  #   last_seen_id <- uuid_to_id(league_params$last_game)
+  #   
+  #   #Check if we have older games than previously seen - ie. if we have gone back far enough to know we have found 'all'(?) new matches (or if this is the first time)
+  #   #Or if all we want is to update to the latest game without posting anything
+  #   #Or if we have hit the 50 game search limit and just want to process the games found that far back
+  #   if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
+  #     
+  #     # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, has new games since {last_date} ({last_match})") %>%
+  #     #   glue_collapse("\n") %>%
+  #     #   print()
+  #     
+  #     unposted_matches <- filter(match_table, id > last_seen_id)
+  #     
+  #     return(unposted_matches$data)
+  #     
+  #   } else { # start requesting more games until you find the last one, 20 entries at a time (to reduce size of api requests)
+  #     return(
+  #       get_new_games(
+  #         league_params,
+  #         last_match,
+  #         #end = matches %>% map("started") %>% last() %>% lubridate::ymd_hms() %>% magrittr::subtract(lubridate::minutes(1)) %>% format(), # searches by start time for some reason
+  #         #cached_matches = matches,
+  #         limit = limit + 20
+  #       )
+  #     )
+  #   }
+  # } else { # no new matches in league
+  #   # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, no new games since {last_date}") %>%
+  #   #   glue_collapse("\n") %>%
+  #   #   print()
+  #   
+  #   return(NULL)
+  # }
+  new_games <- api_matches(
+    key = api_key,
+    limit = limit,
+    league = league_params$league,
+    competition = league_params$competition,
+    platform = league_params$platform
+  )
   
-  if (is.na(league_params$last_date) | league_params$last_date != last_match) { # check cached date of last match finished
-    new_games <- api_matches(
-      key = api_key,
-      limit = limit,
-      league = league_params$league,
-      competition = league_params$competition,
-      platform = league_params$platform
-    )
+  if(is_logical(new_games)) return(NULL) #api returns false if no competitions started in the league
+  if(!exists("matches", new_games)) return(NULL) #if no games played, no $matches in the response
+  
+  match_table <- data_frame(
+    id = map_int(new_games$matches,"id"), 
+    end_time = map_chr(new_games$matches, "finished") %>% lubridate::ymd_hms(), 
+    data = new_games$matches
+  ) %>% 
+    arrange(desc(end_time))
+  last_seen_id <- uuid_to_id(league_params$last_game)
+  
+  #Check if we have older games than previously seen - ie. if we have gone back far enough to know we have found 'all'(?) new matches (or if this is the first time)
+  #Or if all we want is to update to the latest game without posting anything
+  #Or if we have hit the 50 game search limit and just want to process the games found that far back
+  if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
+    unposted_matches <- filter(match_table, id > last_seen_id)
     
-    if(is_logical(new_games)) return(NULL) #api returns false if no competitions started in the league
-    if(!exists("matches", new_games)) return(NULL) #if no games played, no $matches in the response
+    return(unposted_matches$data)
+  } else { # start requesting more games until you find the last one, 20 entries at a time (to reduce size of api requests)
     
-    matches <- c(new_games$matches)
-    
-    match_table <- data_frame(
-      id = map_int(matches,"id"), 
-      end_time = map_chr(matches, "finished") %>% lubridate::ymd_hms(), 
-      data = matches
-    ) %>% 
-      arrange(desc(end_time))
-    
-    last_seen_id <- uuid_to_id(league_params$last_game)
-    
-    #Check if we have older games than previously seen - ie. if we have gone back far enough to know we have found 'all'(?) new matches (or if this is the first time)
-    #Or if all we want is to update to the latest game without posting anything
-    #Or if we have hit the 50 game search limit and just want to process the games found that far back
-    if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
-      
-      # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, has new games since {last_date} ({last_match})") %>%
-      #   glue_collapse("\n") %>%
-      #   print()
-      
-      unposted_matches <- filter(match_table, id > last_seen_id)
-      
-      return(unposted_matches$data)
-      
-    } else { # start requesting more games until you find the last one, 20 entries at a time (to reduce size of api requests)
-      return(
-        get_new_games(
-          league_params,
-          last_match,
-          #end = matches %>% map("started") %>% last() %>% lubridate::ymd_hms() %>% magrittr::subtract(lubridate::minutes(1)) %>% format(), # searches by start time for some reason
-          #cached_matches = matches,
-          limit = limit + 20
-        )
+    return(
+      get_new_games(
+        league_params,
+        #end = matches %>% map("started") %>% last() %>% lubridate::ymd_hms() %>% magrittr::subtract(lubridate::minutes(1)) %>% format(), # searches by start time for some reason
+        #cached_matches = matches,
+        limit = limit + 20
       )
-    }
-  } else { # no new matches in league
-    # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, no new games since {last_date}") %>%
-    #   glue_collapse("\n") %>%
-    #   print()
-    
-    return(NULL)
+    )
   }
-  
 }
 
-new_games <- map2(params, last_matches_date, get_new_games)
+new_games <- map(params, get_new_games)
 
 # Extract full match data new games
 get_league_matches <- function(league_new_games) {
@@ -692,8 +728,7 @@ if(!testing | test_type == "update"){
       last_uuid, 
       has_new_match, 
       last_game = ifelse(has_new_match, last_uuid, last_game) %>% str_c("#",.), 
-      colour = colour %>% as.integer() %>% as.hexmode() %>% format(width=6) %>% str_c("#",.),
-      last_date = paste0("d ", last_matches_date)
+      colour = colour %>% as.integer() %>% as.hexmode() %>% format(width=6) %>% str_c("#",.)
       ) %>% 
     select(-last_uuid, -has_new_match) %>% 
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
