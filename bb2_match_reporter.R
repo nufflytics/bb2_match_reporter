@@ -21,6 +21,20 @@ if(testing) test_type = commandArgs(trailingOnly = T)[2]
 
 api_key <- readRDS("data/api.key")
 
+rebbl_emotify <- function(s) {
+  s %>% stringr::str_replace_all(c(
+    "\n\n+"="\n\n", 
+    ":[D|d]ead:"="<:Dead:311936561069555712>", 
+    ":AtkDown:"="<:AtkDown:311936485098258442>",
+    ":Ogre:" = "<:Ogre:344918473832660992>",
+    ":Blitz:" = "<:Blitz:311936522121117706>",
+    ":Injury:" = "<:Injury:311936638626299904>",
+    ":DefDown:" = "<:DefDown:311936579478355978>",
+    "\\(Star Player\\)" = ":star:",
+    "\\[col.*?\\]" = ""
+  ))
+}
+
 uuid_to_id <- function(uuid) {
   if(is.na(uuid)) return(0)
   uuid %>% str_sub(3) %>% as.hexmode() %>% as.integer()
@@ -69,7 +83,7 @@ last_matches_date <- map_chr(params, get_last_match)
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
-get_new_games <- function(league_params, last_match, limit = 10) {
+get_new_games <- function(league_params, last_match, limit = 50) {
   #browser()
   if(limit > 50) { #crude timeout function (issue with Sandune's game?)
     glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
@@ -159,7 +173,7 @@ abbr <- function(name) {
     stringr::str_replace("\\[(.*?)\\]","") %>% # strip out 'clan' tags
     stringr::str_replace_all("\\((.*?)\\)", " ( \\1 )") %>% # Put spaces around brackets, so eg. USS Sulaco (REL Chapter) is abbreviated to US(RC)
     stringr::str_replace_all("([a-z_.-])([A-Z])", "\\1 \\2") %>%  # add a space before mid-word capitals and 'word separator' punctuation (_.-) followed by a capital
-    stringr::str_replace_all("[\\[\\]&!,'\"*]",'') %>% # delete these characters
+    stringr::str_replace_all("[\\[\\]&!,'\"*:]",'') %>% # delete these characters
     abbreviate(1)
 }
 
@@ -274,7 +288,11 @@ format_injuries <- function(match_data) {
                         '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue_collapse(", ")}
                         {glue_collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
     )) %>%
-    modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "Dead" = "<:Dead:311936561069555712>", "\\(Star Player\\)" = ":star:"))) %>%
+    modify_depth(1, ~str_replace_all(.,
+                                     c("\n,? *" ="\n", 
+                                       "Dead" = "<:Dead:311936561069555712>", 
+                                       "\\(Star Player\\)" = ":star:")
+                                     )) %>%
     modify_depth(1, ~glue_collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
   
@@ -475,7 +493,7 @@ format_fields <- function(league_params, match_data) {
     if (!is.null(injuries)) {
       fields %<>% append(list(list(
         name = "__**Injury Report**__", 
-        value = injuries %>% stringr::str_replace_all(c("\n\n+"="\n\n", ":dead:"="<:Dead:311936561069555712>", ":AtkDown:"="<:AtkDown:311936485098258442>")),
+        value = injuries %>% rebbl_emotify(),
         inline = T
       )))
     }
@@ -487,7 +505,7 @@ format_fields <- function(league_params, match_data) {
     if (!is.null(level_ups)) {
       fields %<>% append(list(list(
         name = "__**Player Development**__", 
-        value = level_ups %>% stringr::str_replace_all(c("\n\n+"="\n\n", ":dead:"="<:Dead:311936561069555712>", ":AtkDown:"="<:AtkDown:311936485098258442>")),
+        value = level_ups %>% rebbl_emotify(),
         inline = T
       )))
     }
@@ -496,7 +514,7 @@ format_fields <- function(league_params, match_data) {
   if(league_params$impact) {
     fields %<>% append(list(list(
       name = "__**Impact Players**__", 
-      value = format_impact(match_data, league_params$fantasy) %>% stringr::str_replace_all(c("\n\n+"="\n\n", ":dead:"="<:Dead:311936561069555712>", ":AtkDown:"="<:AtkDown:311936485098258442>")),
+      value = format_impact(match_data, league_params$fantasy) %>% rebbl_emotify(),
       inline = T
     )))
   }
@@ -528,11 +546,15 @@ format_title <- function(coaches) {
 }
 
 format_teamname <- function(team, match_data) {
+  t <- NULL
+  
   if (league_key == "1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4") {
-    glue::glue("[{team$teamname}](http://rebbl.net/rebbl/team/{team$idteamlisting})")
+    t <- glue::glue("[{team$teamname}](http://rebbl.net/rebbl/team/{team$idteamlisting})")
   } else {
-    team$teamname
+    t <- team$teamname
   }
+  
+  t %>% rebbl_emotify()
 }
 
 format_division <- function(match_data) {
@@ -589,8 +611,7 @@ format_url <- function(match_data) {
   uuid <- match_data$uuid
   
   case_when(
-    grepl("MML", league) ~ glue("http://www.bb2leaguemanager.com/Leaderboard/match_detail.php?match_uuid={uuid}") %>% as.character(),
-    grepl("Zena|ZXL", league) ~ glue("http://www.mordrek.com/goblinSpy/web/goblinSpy.html?league={league}&competition={comp}&q=*front") %>% as.character(),
+    grepl("REBBL", league) ~ glue("https://rebbl.net/rebbl/match/{uuid}") %>% as.character(),
     TRUE ~ glue("http://www.mordrek.com/goblinSpy/web/game.html?mid={uuid}") %>% as.character()
   )
 }
