@@ -665,10 +665,37 @@ format_embed <- function(league_params, match_data) {
 
 
 # Post matches to discord ----
-post_match <- function(league_params, match_data, times = 0) {
+
+#Redirect some clan matches for 
+redirect_clan <- function(league_params, new_hook) {
+  league_params$webhook <- new_hook
   
+  league_params
+}
+
+post_clan <- function(league_params, match_data) {
+  clans <- match_data$teams %>% map_chr("name") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
+  
+  clan_hooks <- list(
+    "[BRIBE]" = "https://discordapp.com/api/webhooks/326519810739666945/LVgkxHSSd_vs3d4To9chThqPyl-TLyN_smaKuc2WyBvwJtZ29AYXI9UbrW1hFGnh-ttk",
+    "[O2]" = "https://discordapp.com/api/webhooks/326519810739666945/LVgkxHSSd_vs3d4To9chThqPyl-TLyN_smaKuc2WyBvwJtZ29AYXI9UbrW1hFGnh-ttk"
+  )
+  
+  for (clan in clans) {
+    if (clan %in% names(clan_hooks)) {
+      post_match(redirect_clan(league_params, clan_hooks[[clan]]), match_data)
+    }
+  } 
+}
+
+post_match <- function(league_params, match_data, times = 0) {
   #started == finished are admin decided games, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
+  
+  #if clan league, see if it needs a redirect as well
+  if (match_data$match$leaguename %in% c("REBBL Clan 6 Div 1A","REBBL Clan 6 Div 1B","REBBL Clan 6 Div 2A","REBBL Clan 6 Div 2B","REBBL Clan Div 3A","REBBL Clan Div 3B","REBBL Clan Div 4A","REBBL Clan Div 4B")) {
+    post_clan(league_params, match_data)
+  }
   
     response <- httr::RETRY("POST",
       url = league_params$webhook,
