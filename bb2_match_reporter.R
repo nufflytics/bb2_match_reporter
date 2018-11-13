@@ -21,6 +21,8 @@ if(testing) test_type = commandArgs(trailingOnly = T)[2]
 
 api_key <- readRDS("data/api.key")
 
+clan_hooks <- readRDS("data/clan_hooks.rds")
+
 rebbl_emotify <- function(s) {
   s %>% stringr::str_replace_all(c(
     "\n\n+"="\n\n", 
@@ -675,12 +677,7 @@ redirect_clan <- function(league_params, new_hook) {
 
 post_clan <- function(league_params, match_data) {
   clans <- match_data$teams %>% map_chr("name") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
-  
-  clan_hooks <- list(
-    "[BRIBE]" = "https://discordapp.com/api/webhooks/326519810739666945/LVgkxHSSd_vs3d4To9chThqPyl-TLyN_smaKuc2WyBvwJtZ29AYXI9UbrW1hFGnh-ttk",
-    "[O2]" = "https://discordapp.com/api/webhooks/326519810739666945/LVgkxHSSd_vs3d4To9chThqPyl-TLyN_smaKuc2WyBvwJtZ29AYXI9UbrW1hFGnh-ttk"
-  )
-  
+
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
       post_match(redirect_clan(league_params, clan_hooks[[clan]]), match_data)
