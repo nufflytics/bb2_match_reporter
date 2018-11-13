@@ -239,7 +239,7 @@ REBBL_races =  function(r) {switch(r,
                                    "Underworld Denizens" = "<:UW:344918559417171970>",
                                    "Vampire" = "<:Vamp:344918571853414400>",
                                    "Wood Elf" = "<:Welf:344918583236755485>",
-                                   r
+                                   ""
 )}
 
 # Format individual fields of embed -----
