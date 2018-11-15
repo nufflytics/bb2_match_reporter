@@ -12,9 +12,9 @@ testing <- length(commandArgs(trailingOnly = T)) > 1
 #Check if already running
 if(length(list.files(path = "data/lock/", pattern = glue("{league_key}.lock"))) > 0) {
   stop(lubridate::now(), " Already running")
-  } else {
+} else {
   write_file("",glue("data/lock/{league_key}.lock"))
-  }
+}
 
 test_type <- ""
 if(testing) test_type = commandArgs(trailingOnly = T)[2]
@@ -329,7 +329,7 @@ format_injuries <- function(match_data) {
     modify_depth(1, ~str_replace_all(.,
                                      c("\n,? *" ="\n", 
                                        "\\(Star Player\\)" = ":star:")
-                                     )) %>%
+    )) %>%
     modify_depth(1, ~glue_collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
   
@@ -547,7 +547,7 @@ format_fields <- function(league_params, match_data) {
       )))
     }
   }
-
+  
   if(league_params$impact) {
     fields %<>% append(list(list(
       name = "__**Impact Players**__", 
@@ -622,13 +622,13 @@ format_description <- function(match_data, needs_ladder) {
     
     if(!is.null(ladder)) {
       ladder <- ladder %>% separate(`w/d/l`, c("Win","Tie","Loss"))
-    
+      
       home_ranking <- filter(ladder, name == home_team$teamname)
       away_ranking <- filter(ladder, name == away_team$teamname)
       
-      if(nrow(home_ranking == 1) & nrow(away_ranking == 1)) {
+      if(nrow(home_ranking) == 1 & nrow(away_ranking) == 1) {
         competition_standing = glue("\n\n{home_ranking$Win}-{home_ranking$Tie}-{home_ranking$Loss} {placing(home_ranking$rank)} V {placing(away_ranking$rank)} {away_ranking$Win}-{away_ranking$Tie}-{away_ranking$Loss}\n")
-      }
+      }  
     }
   }
   
@@ -677,7 +677,7 @@ redirect_clan <- function(league_params, new_hook) {
 
 post_clan <- function(league_params, match_data) {
   clans <- match_data$teams %>% map_chr("name") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
-
+  
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
       post_match(redirect_clan(league_params, clan_hooks[[clan]]), match_data)
@@ -694,27 +694,27 @@ post_match <- function(league_params, match_data, times = 0) {
     post_clan(league_params, match_data)
   }
   
-    response <- httr::RETRY("POST",
-      url = league_params$webhook,
-      body = list(
-        username = str_trunc(league_params$username, 32, side="right", ellipsis = ""),
-        avatar_url = league_params$avatar,
-        embeds = format_embed(league_params, match_data)
-      ),
-      encode = "json",
-      times = 20,
-      pause_min = 5
-    )
-    
-    if (response$status_code == 429) { #rate limited
-      wait_time <- httr::content(response)$retry_after
-      print(glue("Rate limited, pausing for {wait_time} seconds."))
-      Sys.sleep(wait_time)
-    }
-    
-    if (response$status_code %in% c(204,400)) { #log it and pause for a sec
-      Sys.sleep(1)
-    }
+  response <- httr::RETRY("POST",
+                          url = league_params$webhook,
+                          body = list(
+                            username = str_trunc(league_params$username, 32, side="right", ellipsis = ""),
+                            avatar_url = league_params$avatar,
+                            embeds = format_embed(league_params, match_data)
+                          ),
+                          encode = "json",
+                          times = 20,
+                          pause_min = 5
+  )
+  
+  if (response$status_code == 429) { #rate limited
+    wait_time <- httr::content(response)$retry_after
+    print(glue("Rate limited, pausing for {wait_time} seconds."))
+    Sys.sleep(wait_time)
+  }
+  
+  if (response$status_code %in% c(204,400)) { #log it and pause for a sec
+    Sys.sleep(1)
+  }
   
   print(glue::glue("{lubridate::now()}\t{match_data$uuid}\t{match_data$match$leaguename}\t{match_data$match$competitionname}\t{match_data$match$coaches[[1]]$coachname}\t{match_data$match$coaches[[2]]$coachname}\tResponse code:{response$status_code}"))
   response
@@ -752,7 +752,7 @@ if(!testing | test_type == "update"){
       has_new_match, 
       last_game = ifelse(has_new_match, last_uuid, last_game) %>% str_c("#",.), 
       colour = colour %>% as.integer() %>% as.hexmode() %>% format(width=6) %>% str_c("#",.)
-      ) %>% 
+    ) %>% 
     select(-last_uuid, -has_new_match) %>% 
     gs_edit_cells(params_sheet, ws = "Settings", input=.)
 }
