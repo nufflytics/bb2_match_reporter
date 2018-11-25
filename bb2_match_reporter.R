@@ -681,17 +681,17 @@ post_clan <- function(league_params, match_data) {
   
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
-      post_match(redirect_clan(league_params, clan_hooks[[clan]]), match_data)
+      post_match(redirect_clan(league_params, clan_hooks[[clan]]), match_data, check_clans = F)
     }
   } 
 }
 
-post_match <- function(league_params, match_data, times = 0) {
+post_match <- function(league_params, match_data, times = 0, check_clans = T) {
   #started == finished are admin decided games, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
-  
+
   #if clan league, see if it needs a redirect as well
-  if (str_detect(match_data$match$leaguename, "(?i)REBBL Clan")) {
+  if (check_clans & str_detect(match_data$match$leaguename, "(?i)REBBL Clan")) {
     post_clan(league_params, match_data)
   }
   
