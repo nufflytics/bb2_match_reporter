@@ -4,6 +4,7 @@ suppressMessages(library(glue))
 suppressMessages(library(stringr))
 suppressMessages(library(nufflytics))
 suppressMessages(library(googlesheets))
+suppressMessages(library(glue))
 
 ##Setup -----
 league_key <- commandArgs(trailingOnly = T)[1]
@@ -89,7 +90,7 @@ get_new_games <- function(league_params, limit = 50) {
   ##browser()
   # if(limit > 50) { #crude timeout function (issue with Sandune's game?)
   #   glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, last_match:{last_game}, over games limit") %>%
-  #     glue_collapse("\n") %>%
+  #     glue::glue_collapse("\n") %>%
   #     print()
   # }
   # 
@@ -122,7 +123,7 @@ get_new_games <- function(league_params, limit = 50) {
   #   if(any(match_table$id <= last_seen_id) | is.na(league_params$last_game) | test_type == "update" | limit > 50) {
   #     
   #     # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, has new games since {last_date} ({last_match})") %>%
-  #     #   glue_collapse("\n") %>%
+  #     #   glue::glue_collapse("\n") %>%
   #     #   print()
   #     
   #     unposted_matches <- filter(match_table, id > last_seen_id)
@@ -142,7 +143,7 @@ get_new_games <- function(league_params, limit = 50) {
   #   }
   # } else { # no new matches in league
   #   # glue_data(league_params, "{lubridate::now()}, ID:{ID}, league:{league}, comp:{competition}, no new games since {last_date}") %>%
-  #   #   glue_collapse("\n") %>%
+  #   #   glue::glue_collapse("\n") %>%
   #   #   print()
   #   
   #   return(NULL)
@@ -276,7 +277,7 @@ format_stats <- function(match_data) {
       align = "lrl"
     ) %>% 
     extract(-2) %>% # Remove knitr underlines
-    glue_collapse(sep = "\n") %>% #Make single string
+    glue::glue_collapse(sep = "\n") %>% #Make single string
     paste0("Python\n",.) %>% #Add code language marker to get some text colouring
     md("```") #Wrap in code block markup
 }
@@ -323,14 +324,14 @@ format_injuries <- function(match_data) {
     modify_depth(1,~.[!map_lgl(., is.null)]) %>% 
     modify_depth(1,~map(.,
                         glue_data,
-                        '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue_collapse(", ")}
-                        {glue_collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
+                        '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue::glue_collapse(", ")}
+                        {glue::glue_collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
     )) %>%
     modify_depth(1, ~str_replace_all(.,
                                      c("\n,? *" ="\n", 
                                        "\\(Star Player\\)" = ":star:")
     )) %>%
-    modify_depth(1, ~glue_collapse(., "\n\n")) %>%
+    modify_depth(1, ~glue::glue_collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
   
   #If injuries in game
@@ -342,7 +343,7 @@ format_injuries <- function(match_data) {
           {.x}"
         )
       ) %>%
-      glue_collapse("\n\n")
+      glue::glue_collapse("\n\n")
   } else {NULL}
   
 }
@@ -394,10 +395,10 @@ format_levels <- function(match_data) {
     modify_depth(1,~map(.,
                         glue_data,
                         '__{star_player_name(name)}__ *({type})*: **{spp_old} :arrow_right: {spp_new} SPP**
-                        {glue_collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
+                        {glue::glue_collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
     )) %>% 
     modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
-    modify_depth(1, ~glue_collapse(., "\n\n")) %>% 
+    modify_depth(1, ~glue::glue_collapse(., "\n\n")) %>% 
     extract(map_lgl(., ~(length(.)>0)))
   
   # If injuries in game 
@@ -409,7 +410,7 @@ format_levels <- function(match_data) {
           {.x}"
         )
       ) %>% 
-      glue_collapse("\n\n")
+      glue::glue_collapse("\n\n")
   } else {NULL}
   
 }
@@ -510,7 +511,7 @@ format_impact <- function(match_data, is_fantasy) {
       "\n, " = "\n",
       "- Star Player" = "- :star:"
     )) %>% 
-    glue_collapse("\n\n")
+    glue::glue_collapse("\n\n")
   
 }
 
@@ -690,7 +691,7 @@ post_match <- function(league_params, match_data, times = 0) {
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
   
   #if clan league, see if it needs a redirect as well
-  if (match_data$match$leaguename %in% c("REBBL Clan 6 Div 1A","REBBL Clan 6 Div 1B","REBBL Clan 6 Div 2A","REBBL Clan 6 Div 2B","REBBL Clan Div 3A","REBBL Clan Div 3B","REBBL Clan Div 4A","REBBL Clan Div 4B")) {
+  if (str_detect(match_data$match$leaguename, "(?i)REBBL Clan")) {
     post_clan(league_params, match_data)
   }
   
