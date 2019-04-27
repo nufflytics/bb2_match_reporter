@@ -320,18 +320,18 @@ format_injuries <- function(match_data) {
   
   #Filter out uninjured players and prepare the report text (removing teams that don't have any injuries)
   injury_data <- player_info %>% 
-    modify_depth(2, parse_injuries) %>% 
-    modify_depth(1,~.[!map_lgl(., is.null)]) %>% 
-    modify_depth(1,~map(.,
+    map(~map(.,parse_injuries)) %>% 
+    map(~.[!map_lgl(., is.null)]) %>% 
+    map(~map(.,
                         glue_data,
                         '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue::glue_collapse(", ")}
                         {glue::glue_collapse(c(skills, md(map_chr(old_perms, id_to_casualty), "*")), ", ")} ({spp_old+spp_gain} SPP)'
     )) %>%
-    modify_depth(1, ~str_replace_all(.,
+    map(~str_replace_all(.,
                                      c("\n,? *" ="\n", 
                                        "\\(Star Player\\)" = ":star:")
     )) %>%
-    modify_depth(1, ~glue::glue_collapse(., "\n\n")) %>%
+    map(~glue::glue_collapse(., "\n\n")) %>%
     extract(map_lgl(., ~(length(.)>0)))
   
   #If injuries in game
@@ -390,15 +390,15 @@ format_levels <- function(match_data) {
   
   #Filter out unlevelled players and prepare the report text (removing teams that don't have any levels)
   level_data <- player_info %>% 
-    modify_depth(2, parse_levels) %>% 
-    modify_depth(1,~.[!map_lgl(., is.null)]) %>% 
-    modify_depth(1,~map(.,
+    map(~map(., parse_levels)) %>% 
+    map(~.[!map_lgl(., is.null)]) %>% 
+    map(~map(.,
                         glue_data,
                         '__{star_player_name(name)}__ *({type})*: **{spp_old} :arrow_right: {spp_new} SPP**
                         {glue::glue_collapse(c(skills, md(map_chr(perms,id_to_casualty), "*")), ", ")}'
     )) %>% 
-    modify_depth(1, ~str_replace_all(.,c("\n,? *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
-    modify_depth(1, ~glue::glue_collapse(., "\n\n")) %>% 
+    map(~str_replace_all(.,c("\n,? *" ="\n", "\\(Star Player\\)" = ":star:"))) %>% 
+    map(~glue::glue_collapse(., "\n\n")) %>% 
     extract(map_lgl(., ~(length(.)>0)))
   
   # If injuries in game 
@@ -467,7 +467,7 @@ format_impact <- function(match_data, is_fantasy) {
   
   #Calc FP stats and order by FP, SPP gained, random. Then keep top 3
   impact_data <- player_info %>% 
-    modify_depth(1, ~map2(.$roster, .$teamname, parse_impact)) %>%
+    map(~map2(.$roster, .$teamname, parse_impact)) %>%
     flatten %>%
     extract(
       order(
