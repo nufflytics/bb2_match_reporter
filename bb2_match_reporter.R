@@ -708,7 +708,7 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   }
   
   if (check_race & any(str_detect(match_data$match$leaguename, c("Big O", "Gman", "REL")))) {
-    post_race(leagaue_params, match_data)
+    post_race(league_params, match_data)
   }
   
   response <- httr::RETRY("POST",
