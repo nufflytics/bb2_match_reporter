@@ -24,6 +24,8 @@ api_key <- readRDS("data/api.key")
 
 clan_hooks <- readRDS("data/clan_hooks.rds")
 
+race_hooks <- readRDS("data/race_hooks.rds")
+
 rebbl_emotify <- function(s) {
   s %>% stringr::str_replace_all(c(
     "\n\n+"="\n\n", 
@@ -670,7 +672,7 @@ format_embed <- function(league_params, match_data) {
 # Post matches to discord ----
 
 #Redirect some clan matches for 
-redirect_clan <- function(league_params, new_hook) {
+redirect_params <- function(league_params, new_hook) {
   league_params$webhook <- new_hook
   
   league_params
@@ -681,18 +683,32 @@ post_clan <- function(league_params, match_data) {
   
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
-      post_match(redirect_clan(league_params, clan_hooks[[clan]]), match_data, check_clans = F)
+      post_match(redirect_params(league_params, clan_hooks[[clan]]), match_data, check_clans = F, check_race = F)
     }
   } 
 }
 
-post_match <- function(league_params, match_data, times = 0, check_clans = T) {
+post_race <- function(league_params, match_data) {
+  races <- match_data$teams %>% map_int("idraces") %>% map_chr(id_to_race) %>% unique()
+  
+  for (race in races) {
+    if (race %in% names(race_hooks)) {
+      post_match(redirect_params(league_params, race_hooks[[race]]), match_data, check_clans = F, check_race = F)
+    }
+  }
+}
+
+post_match <- function(league_params, match_data, times = 0, check_clans = T, check_race = T) {
   #started == finished are admin decided games, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
 
   #if clan league, see if it needs a redirect as well
   if (check_clans & str_detect(match_data$match$leaguename, "(?i)REBBL Clan")) {
     post_clan(league_params, match_data)
+  }
+  
+  if (check_race & any(str_detect(match_data$match$leaguename, c("Big O", "Gman", "REL")))) {
+    post_race(leagaue_params, match_data)
   }
   
   response <- httr::RETRY("POST",
