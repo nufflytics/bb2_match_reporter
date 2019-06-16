@@ -658,11 +658,11 @@ format_url <- function(match_data) {
   )
 }
 
-format_embed <- function(league_params, match_data) {
+format_embed <- function(league_params, match_data, redirected = F) {
   list(
     list(
       title = format_title(match_data$coaches),
-      description = format_description(match_data, league_params$ladder),
+      description = format_description(match_data, league_params$ladder, redirected),
       url = URLencode(format_url(match_data)),
       color = league_params$colour,
       fields = format_fields(league_params, match_data)
@@ -718,7 +718,7 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
                           body = list(
                             username = str_trunc(league_params$username, 32, side="right", ellipsis = ""),
                             avatar_url = league_params$avatar,
-                            embeds = format_embed(league_params, match_data)
+                            embeds = format_embed(league_params, match_data, redirected = !check_race)
                           ),
                           encode = "json",
                           times = 20,
