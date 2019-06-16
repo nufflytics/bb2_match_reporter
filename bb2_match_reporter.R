@@ -605,7 +605,7 @@ format_division <- function(match_data) {
   }
 }
 
-format_description <- function(match_data, needs_ladder) {
+format_description <- function(match_data, needs_ladder, redirected = F) {
   home_team <- match_data$match$teams[[1]]
   away_team <- match_data$match$teams[[2]]
   competition_standing <- ""
@@ -638,9 +638,11 @@ format_description <- function(match_data, needs_ladder) {
   if (home_team$score > away_team$score) {home_team$teamname %<>%  md("**")}
   if (away_team$score > home_team$score) {away_team$teamname %<>%  md("**")}
   
+  use_team_emoji <- grepl('REBBL', match_data$match$leaguename) & !redirected
+  
   glue(
     "{format_teamname(home_team, match_data)} V {format_teamname(away_team, match_data)}
-    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(grepl('REBBL', match_data$match$leaguename),str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(grepl('REBBL', match_data$match$leaguename), str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(use_team_emoji,str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(use_team_emoji, str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
     {format_division(match_data)}"
   )
 }
@@ -707,7 +709,7 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
     post_clan(league_params, match_data)
   }
   
-  if (check_race & any(str_detect(match_data$match$leaguename, c("Big O", "Gman", "REL")))) {
+  if (check_race & any(str_detect(str_to_lower(match_data$match$leaguename), c("big o", "gman", "rel", "rebbl clan")))) {
     post_race(league_params, match_data)
   }
   
