@@ -218,34 +218,65 @@ abbr <- function(name) {
     abbreviate(1)
 }
 
-REBBL_races =  function(r) {switch(r,
-                                   "Amazon" = "<:Zon:344918598286049281>",
-                                   "Bretonnian" = "<:Bret:344918238976802826>",
-                                   "Brettonian" = "<:Bret:344918238976802826>",
-                                   "Chaos" = "<:Chaos:344918252155305984>",
-                                   "Chaos Dwarf" = "<:Chorf:344918276121427968>",
-                                   "Dark Elf" = "<:Delf:344918286888337409>",
-                                   "Dwarf" = "<:Dorf:344918297084559360>",
-                                   "Elven Union" = "<:Pro:344918515817644033>",
-                                   "Goblin" = "<:Gobbo:344918318685224975>",
-                                   "Halfling" = "<:Fling:344918306236530698>",
-                                   "High Elf" = "<:Helf:344918331930705921>",
-                                   "Human" = "<:Human:344918344841035777>",
-                                   "Khemri" = "<:Khemri:344918363438579714>",
-                                   "Kislev Circus" = "<:Kislev:344918385542299648>",
-                                   "Lizardmen" = "<:Lizard:344918404471455744>",
-                                   "Necromantic" = "<:Necro:344918417712611328>",
-                                   "Norse" = "<:Norse:344918434867314691>",
-                                   "Nurgle" = "<:Nurgle:344918450977898501>",
-                                   "Ogre" = "<:Ogre:344918473832660992>",
-                                   "Orc" = "<:Orc:344918500583800845>",
-                                   "Skaven" = "<:Rats:344918530531131403>",
-                                   "Undead" = "<:Undead:344918543974006788>",
-                                   "Underworld Denizens" = "<:UW:344918559417171970>",
-                                   "Vampire" = "<:Vamp:344918571853414400>",
-                                   "Wood Elf" = "<:Welf:344918583236755485>",
-                                   ""
-)}
+REBBL_races =  function(r, is_clan) {
+    if (is_clan) {
+      switch(r,
+             "Amazon" = "<:Zon:344918598286049281>",
+             "Bretonnian" = "<:Bret:344918238976802826>",
+             "Chaos" = "<:Chaos:344918252155305984>",
+             "Chaos Dwarf" = "<:Chorf:344918276121427968>",
+             "Dark Elf" = "<:Delf:344918286888337409>",
+             "Dwarf" = "<:Dorf:344918297084559360>",
+             "Elven Union" = "<:Pro:344918515817644033>",
+             "Goblin" = "<:Gobbo:344918318685224975>",
+             "Halfling" = "<:Fling:344918306236530698>",
+             "High Elf" = "<:Helf:344918331930705921>",
+             "Human" = "<:Human:344918344841035777>",
+             "Khemri" = "<:Khemri:344918363438579714>",
+             "Kislev Circus" = "<:Kislev:344918385542299648>",
+             "Lizardmen" = "<:Lizard:344918404471455744>",
+             "Necromantic" = "<:Necro:344918417712611328>",
+             "Norse" = "<:Norse:344918434867314691>",
+             "Nurgle" = "<:Nurgle:344918450977898501>",
+             "Ogre" = "<:Ogre:344918473832660992>",
+             "Orc" = "<:Orc:344918500583800845>",
+             "Skaven" = "<:Rats:344918530531131403>",
+             "Undead" = "<:Undead:344918543974006788>",
+             "Underworld Denizens" = "<:UW:344918559417171970>",
+             "Vampire" = "<:Vamp:344918571853414400>",
+             "Wood Elf" = "<:Welf:344918583236755485>",
+             ""
+      )
+    } else {
+      switch(r,
+             "Amazon" = "<:Zon:620146370644279306>",
+             "Bretonnian" = "<:Bret:620147298613198859>",
+             "Chaos" = "<:Chaos:620147347749339144>",
+             "Chaos Dwarf" = "<:Chorf:620147385967837184>",
+             "Dark Elf" = "<:Delf:620147427239919647>",
+             "Dwarf" = "<:Dorf:620147464913289256>",
+             "Elven Union" = "<:Pro:620147654474727425>",
+             "Goblin" = "<:Gobbo:620147694295580683>",
+             "Halfling" = "<:Fling:620147783286128640>",
+             "High Elf" = "<:Helf:620147842878668800>",
+             "Human" = "<:Human:620147879654326273>",
+             "Khemri" = "<:Khemri:620147915905826837>",
+             "Kislev Circus" = "<:Kislev:620147988765081600>",
+             "Lizardmen" = "<:Lizard:620148158521147393>",
+             "Necromantic" = "<:Necro:620148196332535829>",
+             "Norse" = "<:Norse:620148237004963860>",
+             "Nurgle" = "<:Nurgle:620148273738678274>",
+             "Ogre" = "<:Ogre:620148309067300893>",
+             "Orc" = "<:Orc:620148341862301727>",
+             "Skaven" = "<:Rats:620148379900575750>",
+             "Undead" = "<:Undead:620148412951691308>",
+             "Underworld Denizens" = "<:UW:620148449806909440>",
+             "Vampire" = "<:Vamp:620148490500177920>",
+             "Wood Elf" = "<:Welf:620148522959896576>",
+             ""
+      )
+    }
+                                  }
 
 # Format individual fields of embed -----
 format_stats <- function(match_data) {
@@ -640,9 +671,11 @@ format_description <- function(match_data, needs_ladder, redirected = F) {
   
   use_team_emoji <- grepl('REBBL', match_data$match$leaguename) & !redirected
   
+  is_clan <- grepl('Clan', match_data$match$leaguename)
+  
   glue(
     "{format_teamname(home_team, match_data)} V {format_teamname(away_team, match_data)}
-    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(use_team_emoji,str_c(' ',REBBL_races(id_to_race(home_team$idraces))),'')} V {ifelse(use_team_emoji, str_c(REBBL_races(id_to_race(away_team$idraces)),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(use_team_emoji,str_c(' ',REBBL_races(id_to_race(home_team$idraces)), is_clan),'')} V {ifelse(use_team_emoji, str_c(REBBL_races(id_to_race(away_team$idraces)), is_clan,' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
     {format_division(match_data)}"
   )
 }
