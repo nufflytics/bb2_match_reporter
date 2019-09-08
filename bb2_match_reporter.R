@@ -675,7 +675,7 @@ format_description <- function(match_data, needs_ladder, redirected = F) {
   
   glue(
     "{format_teamname(home_team, match_data)} V {format_teamname(away_team, match_data)}
-    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(use_team_emoji,str_c(' ',REBBL_races(id_to_race(home_team$idraces)), is_clan),'')} V {ifelse(use_team_emoji, str_c(REBBL_races(id_to_race(away_team$idraces)), is_clan,' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
+    TV {home_team$value} {id_to_race(home_team$idraces)}{ifelse(use_team_emoji,str_c(' ',REBBL_races(id_to_race(home_team$idraces), is_clan)),'')} V {ifelse(use_team_emoji, str_c(REBBL_races(id_to_race(away_team$idraces), is_clan),' '), '')}{id_to_race(away_team$idraces)} {away_team$value} TV {competition_standing}
     {format_division(match_data)}"
   )
 }
