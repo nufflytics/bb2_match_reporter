@@ -219,7 +219,7 @@ abbr <- function(name) {
 }
 
 REBBL_races =  function(r, is_clan) {
-    if (is_clan) {
+    if (!is_clan) {
       switch(r,
              "Amazon" = "<:Zon:344918598286049281>",
              "Bretonnian" = "<:Bret:344918238976802826>",
