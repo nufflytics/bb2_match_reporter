@@ -742,7 +742,9 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
     post_clan(league_params, match_data)
   }
   
-  if (check_race & any(str_detect(str_to_lower(match_data$match$leaguename), c("big o", "gman", "rel", "rebbl clan")))) {
+  race_leagues <- c("big o", "gman", "rel", "rebbl clan", "playoffs", "open inv", "greenhorn")
+  
+  if (check_race & any(str_detect(str_to_lower(match_data$match$leaguename), race_leagues))) {
     post_race(league_params, match_data)
   }
   
