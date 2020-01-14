@@ -744,7 +744,7 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   
   race_leagues <- c("big o", "gman", "rel", "rebbl clan", "playoffs", "open inv", "greenhorn")
   
-  if (check_race & any(str_detect(str_to_lower(match_data$match$leaguename), race_leagues))) {
+  if (check_race & (any(str_detect(str_to_lower(match_data$match$leaguename), race_leagues))) | match_data$match$competitionname == "Rebbl Perpetual Ladder" ) {
     post_race(league_params, match_data)
   }
   
