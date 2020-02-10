@@ -1,24 +1,5 @@
-source("report.R")
-suppressMessages(library(tidyverse))
-suppressMessages(library(magrittr))
-suppressMessages(library(glue))
-suppressMessages(library(stringr))
-suppressMessages(library(nufflytics))
-
-api_key <- readRDS("data/api.key")
-
-# This will post all with rebbl.net team links
-league_key = "1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4"
-
-
 #* @get /report/<uuid>
 function(uuid, req, res) {
-  
-  # Check redirect data
-  clan_hooks <- readRDS("data/clan_hooks.rds")
-  
-  race_hooks <- readRDS("data/race_hooks.rds")
-  
   # Get match data
   match_data <- api_match(api_key, match_id = uuid)
   
