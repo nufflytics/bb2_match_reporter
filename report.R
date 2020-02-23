@@ -602,7 +602,7 @@ post_clan <- function(league_params, match_data) {
 }
 
 post_race <- function(league_params, match_data) {
-  races <- match_data$teams %>% map_int("idraces") %>% map_chr(id_to_race) %>% unique()
+  races <- match_data$match$teams %>% map_int("idraces") %>% map_chr(id_to_race) %>% unique()
   
   for (race in races) {
     if (race %in% names(race_hooks)) {
