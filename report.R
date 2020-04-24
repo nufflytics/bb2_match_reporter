@@ -650,6 +650,6 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   response
 }
 
-post_matches <- function(league_params, matches) {
-  map(matches, ~post_match(league_params, .))
+post_matches <- function(league_params, matches, ...) {
+  map(matches, ~post_match(league_params, ., ...))
 }
