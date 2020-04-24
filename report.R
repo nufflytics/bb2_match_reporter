@@ -204,7 +204,7 @@ format_injuries <- function(match_data) {
       name = player$name,
       spp_old = player$xp,
       spp_gain = player$xp_gain,
-      old_perms = player$casualties_state_id[-match(player$casualties_sustained_id,player$casualties_state_id)],
+      old_perms = player$casualties_state_id[-match(player$casualties_sustained_id,player$casualties_state_id, nomatch = 0)],
       new_injuries = player$casualties_sustained_id[player$casualties_sustained_id>1] 
     )
     
@@ -592,7 +592,7 @@ redirect_params <- function(league_params, new_hook) {
 }
 
 post_clan <- function(league_params, match_data) {
-  clans <- match_data$teams %>% map_chr("name") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
+  clans <- match_data$match$teams %>% map_chr("name") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
   
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
