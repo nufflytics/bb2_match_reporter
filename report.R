@@ -592,7 +592,7 @@ redirect_params <- function(league_params, new_hook) {
 }
 
 post_clan <- function(league_params, match_data) {
-  clans <- match_data$match$teams %>% map_chr("name") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
+  clans <- match_data$match$teams %>% map_chr("teamname") %>% str_replace_all("(\\[.+?\\])(.*)","\\1") %>% toupper()
   
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
