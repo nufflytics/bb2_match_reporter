@@ -28,6 +28,10 @@ id_to_uuid <- function(id, platform) {
   paste0(pcode, id %>% as.hexmode() %>% format(width = 8))
 }
 
+BAD_WORDS <- c(
+  "CUNT",
+  "FUCK"
+)
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
 #This should be more efficient, fix it if Cyanide decide to change the way the /matches api works
@@ -88,12 +92,20 @@ md <- function(text, markup) {glue("{markup}{text}{markup}")}
 
 #Abbreviate team names
 abbr <- function(name) {
-  name %>%
+  abb <- name %>%
     stringr::str_replace("\\[(.*?)\\]","") %>% # strip out 'clan' tags
     stringr::str_replace_all("\\((.*?)\\)", " ( \\1 )") %>% # Put spaces around brackets, so eg. USS Sulaco (REL Chapter) is abbreviated to US(RC)
     stringr::str_replace_all("([a-z_.-])([A-Z])", "\\1 \\2") %>%  # add a space before mid-word capitals and 'word separator' punctuation (_.-) followed by a capital
     stringr::str_replace_all("[\\[\\]&!,'\"*:]",'') %>% # delete these characters
     abbreviate(1)
+  
+  #sigh
+  if (any(stringr::str_detect(abb, BAD_WORDS))) {
+    return("o_O")
+  }
+  else {
+    return(abb)
+  }
 }
 
 REBBL_races =  function(r, is_clan) {
