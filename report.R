@@ -1,3 +1,5 @@
+vp <- readRDS("data/vp.rds")
+
 rebbl_emotify <- function(s) {
   s %>% stringr::str_replace_all(c(
     "\n\n+"="\n\n", 
@@ -608,7 +610,7 @@ post_clan <- function(league_params, match_data) {
   
   for (clan in clans) {
     if (clan %in% names(clan_hooks)) {
-      post_match(redirect_params(league_params, clan_hooks[[clan]]), match_data, check_clans = F, check_race = F)
+      post_match(redirect_params(league_params, clan_hooks[[clan]]), match_data, check_clans = F, check_race = F, check_coaches = F)
     }
   } 
 }
@@ -618,12 +620,20 @@ post_race <- function(league_params, match_data) {
   
   for (race in races) {
     if (race %in% names(race_hooks)) {
-      post_match(redirect_params(league_params, race_hooks[[race]]), match_data, check_clans = F, check_race = F)
+      post_match(redirect_params(league_params, race_hooks[[race]]), match_data, check_clans = F, check_race = F, check_coaches = F)
     }
   }
 }
 
-post_match <- function(league_params, match_data, times = 0, check_clans = T, check_race = T) {
+post_coaches <- function(league_params, match_data) {
+  coaches <- match_data$match$coaches %>% map_chr("coachname")
+  
+  if(any(coaches %in% vp$coaches)) {
+    post_match(redirect_params(league_params, vp$hook), match_data, check_clans = F, check_race = F, check_coaches = F)
+  }
+}
+
+post_match <- function(league_params, match_data, times = 0, check_clans = T, check_race = T, check_coaches = T) {
   #started == finished are admin decided games, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
   
@@ -634,6 +644,10 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   
   if (check_race & any(str_detect(str_to_lower(match_data$match$leaguename), c("big o", "gman", "rel", "rebbl clan","off season")))) {
     post_race(league_params, match_data)
+  }
+  
+  if(check_coaches) {
+    post_coach(league_params, match_data)
   }
   
   response <- httr::RETRY("POST",
