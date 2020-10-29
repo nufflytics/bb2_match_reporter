@@ -647,7 +647,7 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   }
   
   if(check_coaches) {
-    post_coach(league_params, match_data)
+    post_coaches(league_params, match_data)
   }
   
   response <- httr::RETRY("POST",
