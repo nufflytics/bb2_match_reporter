@@ -1,4 +1,5 @@
 vp <- readRDS("data/vp.rds")
+chi <- readRDS("data/chi.rds")
 
 rebbl_emotify <- function(s) {
   s %>% stringr::str_replace_all(c(
@@ -630,6 +631,10 @@ post_coaches <- function(league_params, match_data) {
   
   if(any(coaches %in% vp$coaches)) {
     post_match(redirect_params(league_params, vp$hook), match_data, check_clans = F, check_race = F, check_coaches = F)
+  }
+  
+  if(any(coaches %in% chi$coaches)) {
+    post_match(redirect_params(league_params, chi$hook), match_data, check_clans = F, check_race = F, check_coaches = F)
   }
 }
 
