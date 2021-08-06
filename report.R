@@ -512,7 +512,7 @@ format_title <- function(coaches) {
 format_teamname <- function(team, match_data) {
   t <- NULL
   
-  if (league_key == "1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4") {
+  if (league_name == "REBBL") {
     t <- glue::glue("[{team$teamname}](http://rebbl.net/rebbl/team/{team$idteamlisting})")
   } else {
     t <- team$teamname
@@ -522,7 +522,7 @@ format_teamname <- function(team, match_data) {
 }
 
 format_division <- function(match_data) {
-  if (league_key == "1siRNzFH3hawaQn4P4c3ukSj23NDwM4hF_hDNZadYOL4") {
+  if (league_name == "REBBL") {
     glue::glue("[{md(match_data$match$competitionname,'*')}](http://rebbl.net/rebbl/{URLencode(match_data$match$leaguename %>% str_remove('REBBL - '))}#{URLencode(match_data$match$competitionname)})")
   } else {
     md(match_data$match$competitionname,'*')
