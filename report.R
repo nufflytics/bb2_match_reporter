@@ -580,7 +580,7 @@ format_url <- function(match_data) {
   
   case_when(
     grepl("REBBL", league) ~ glue("https://rebbl.net/rebbl/match/{uuid}") %>% as.character(),
-    TRUE ~ glue("http://www.mordrek.com/goblinSpy/web/game.html?mid={uuid}") %>% as.character()
+    TRUE ~ glue("http://www.mordrek.com/gspy/match/cid_{uuid}") %>% as.character()
   )
 }
 
