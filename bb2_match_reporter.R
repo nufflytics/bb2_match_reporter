@@ -7,7 +7,7 @@ suppressMessages(library(here))
 
 ##Setup -----
 league_name <- str_remove(commandArgs(trailingOnly = T)[1], "\\.tsv")
-league_file <- here(commandArgs(trailingOnly = T)[1])
+league_file <- here("data", commandArgs(trailingOnly = T)[1])
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
 #Check if already running
