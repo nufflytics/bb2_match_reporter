@@ -6,14 +6,15 @@ suppressMessages(library(nufflytics))
 suppressMessages(library(here))
 
 ##Setup -----
+league_name <- str_remove(commandArgs(trailingOnly = T)[1], "\\.tsv")
 league_file <- here(commandArgs(trailingOnly = T)[1])
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
 #Check if already running
-if(length(list.files(path = "data/lock/", pattern = glue("{league_file}.lock"))) > 0) {
+if(length(list.files(path = "data/lock/", pattern = glue("{league_name}.lock"))) > 0) {
   stop(lubridate::now(), " Already running")
 } else {
-  write_file("",glue("data/lock/{league_file}.lock"))
+  write_file("",glue("data/lock/{league_name}.lock"))
 }
 
 test_type <- ""
@@ -91,4 +92,4 @@ if(!testing | test_type == "update"){
     write_tsv(league_file)
 }
 
-system2("rm", glue("data/lock/{league_file}.lock"))
+system2("rm", glue("data/lock/{league_name}.lock"))
