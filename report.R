@@ -200,6 +200,7 @@ format_stats <- function(match_data) {
   team_stats %>% 
     knitr::kable(
       col.names = c("", abbr(pluck(match_data, "match", "teams", 1, "teamname")), paste0(abbr(pluck(match_data, "match", "teams", 2, "teamname")), "  ")), 
+      row.names = F,
       format = "pandoc", 
       align = "lrl"
     ) %>% 
