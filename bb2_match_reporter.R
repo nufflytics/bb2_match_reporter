@@ -3,17 +3,17 @@ suppressMessages(library(magrittr))
 suppressMessages(library(glue))
 suppressMessages(library(stringr))
 suppressMessages(library(nufflytics))
-suppressMessages(library(googlesheets))
+suppressMessages(library(here))
 
 ##Setup -----
-league_key <- commandArgs(trailingOnly = T)[1]
+league_file <- here(commandArgs(trailingOnly = T)[1])
 testing <- length(commandArgs(trailingOnly = T)) > 1
 
 #Check if already running
-if(length(list.files(path = "data/lock/", pattern = glue("{league_key}.lock"))) > 0) {
+if(length(list.files(path = "data/lock/", pattern = glue("{league_file}.lock"))) > 0) {
   stop(lubridate::now(), " Already running")
 } else {
-  write_file("",glue("data/lock/{league_key}.lock"))
+  write_file("",glue("data/lock/{league_file}.lock"))
 }
 
 test_type <- ""
@@ -27,13 +27,10 @@ race_hooks <- readRDS("data/race_hooks.rds")
 
 source("report.R")
 
-gs_auth(token = "data/token.rds")
-params_sheet <-gs_key(league_key)
-
 # Read in league parameters -----
-read_params <- function(gsheet) {
-  gsheet %>% 
-    gs_read(ws = "Settings", col_types = "ccccccccllllllc", trim_ws = F) %>% 
+read_params <- function(l_file) {
+  l_file %>% 
+    read_tsv(col_types = "ccccccccllllllc", trim_ws = F) %>% 
     mutate(last_game = str_remove(last_game, "#")) %>% 
     as.list %>% 
     transpose(.names = .$ID) %>% 
@@ -41,7 +38,7 @@ read_params <- function(gsheet) {
     map(~modify_at(.,"colour", ~(.x %>% str_replace("#","") %>% as.hexmode() %>% as.integer()))) # convert hexcodes into integer colours
 }
 
-params <- read_params(params_sheet)
+params <- read_params(league_file)
 
 # Find any new games for leagues ----- 
 
@@ -77,7 +74,7 @@ if(!testing | test_type == "update"){
   has_new_match <- map_lgl(last_uuid, Negate(is.na))
   
   #refetch params from sheet in case they have been edited
-  params <- read_params(params_sheet)
+  params <- read_params(league_file)
   
   #update with latest game id and rerwite to google sheet
   params %>% 
@@ -91,7 +88,7 @@ if(!testing | test_type == "update"){
       colour = colour %>% as.integer() %>% as.hexmode() %>% format(width=6) %>% str_c("#",.)
     ) %>% 
     select(-last_uuid, -has_new_match) %>% 
-    gs_edit_cells(params_sheet, ws = "Settings", input=.)
+    write_tsv(league_file)
 }
 
-system2("rm", glue("data/lock/{league_key}.lock"))
+system2("rm", glue("data/lock/{league_file}.lock"))
