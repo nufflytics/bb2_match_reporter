@@ -246,10 +246,13 @@ format_injuries <- function(match_data) {
     player_data
   }
   
-  #Filter out uninjured players and prepare the report text (removing teams that don't have any injuries)
-  injury_data <- player_info %>% 
+  #Filter out uninjured players
+  injured_players <- player_info %>% 
     map(~map(.,parse_injuries)) %>% 
-    map(~.[!map_lgl(., is.null)]) %>% 
+    map(~.[!map_lgl(., is.null)]) 
+  
+  #Prepare the report text (removing teams that don't have any injuries)
+  injury_data <- injured_players %>% 
     map(~map(.,
              glue_data,
              '__{star_player_name(name)}__ *({type})*: {map_chr(new_injuries, id_to_casualty) %>% md("**") %>% glue::glue_collapse(", ")}
@@ -640,6 +643,71 @@ post_coaches <- function(league_params, match_data) {
   }
 }
 
+
+# New bit for Hero
+# Output injuries from Chaos races to a csv file
+# Still need to record responsible coach and any extra team info required.
+
+record_chaos_injuries <- function(match_data) {
+  player_info <- match_data$match$teams %>% map("roster") %>% set_names(match_data$match$teams %>% map_chr("teamname"))
+  
+  coach_info <- tibble(
+    team = match_data %>% pluck("teams") %>% map_chr(pluck, "name"),
+    coach = match_data %>% pluck("coaches") %>% map_chr(pluck, "name"),
+    opponent = rev(coach)
+  )
+  
+  #If no new injuries or only BH, ignore. Otherwise list relevant characteristics
+  parse_injuries <- function(player) {
+    if(length(player$casualties_sustained_id) == 0 | all(player$casualties_sustained_id < 2)) return(NULL)
+    
+    player_data <- list(
+      name = player$name,
+      level = player$level,
+      old_perms = player$casualties_state_id[-match(player$casualties_sustained_id,player$casualties_state_id, nomatch = 0)] %>% map_chr(id_to_casualty) %>% glue::glue_collapse(sep = "|"),
+      new_injuries = player$casualties_sustained_id[player$casualties_sustained_id>1] %>% map_chr(id_to_casualty) %>% glue::glue_collapse(sep = "|")
+    )
+    if(length(player_data$old_perms) == 0) {player_data$old_perms <- NA_character_}
+    
+    #Deal with players with no skills
+    if(length(player$skills) == 0)  {
+      player_data$skills <- NA_character_
+    } else {
+      player_data$skills = player$skills %>%
+        stringr::str_replace_all(c("Increase" = "+", "Movement" = "MA", "Armour" = "AV", "Agility" = "AG", "Strength" = "ST")) %>% 
+        stringr::str_replace_all("([a-z])([A-Z])", "\\1 \\2") %>% 
+        glue::glue_collapse(sep = "|")
+    }
+    
+    # Fix up star players
+    if (grepl("StarPlayer", player$type)) {
+      player_data$type = "Star Player"
+    } else {
+      player_data$type = player$type %>% 
+        stringr::str_replace("(.*)_(.*)", "\\2") %>% 
+        stringr::str_replace_all("([a-z])([A-Z])", "\\1 \\2")
+    }
+    
+    player_data$race = player$type %>% 
+      stringr::str_replace("(.*)_(.*)", "\\1") %>% 
+      stringr::str_replace_all("([a-z])([A-Z])", "\\1 \\2")
+    
+    player_data
+  }
+
+  #Filter out uninjured players
+  injured_players <- player_info %>% 
+    map(~map(.,parse_injuries)) %>% 
+    map(~.[!map_lgl(., is.null)]) %>%
+    map_df(~map_df(. , as_data_frame), .id = "team")
+
+  # Only export chaos/nurgle/chorf injuries
+  injured_players %>%
+    filter(race %in% c("Chaos", "Nurgle", "Chaos Dwarf"), !type %in% c("Rotter", "Hobgoblin")) %>%
+    left_join(coach_info, by = "team") %>%
+    write_csv("data/chaos_death_tally.csv", append = F, na = "")
+}
+
 post_match <- function(league_params, match_data, times = 0, check_clans = T, check_race = T, check_coaches = T) {
   #started == finished are admin decided games, mvps = 0|2 means conceded game
   if(pluck(match_data, "match", "started") == pluck(match_data, "match", "finished") | pluck(match_data, "match", "teams", 1, "mvp") != 1) return(NULL)
@@ -656,6 +724,10 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   if(check_coaches) {
     post_coaches(league_params, match_data)
   }
+  
+  ## New bit for Hero's competition
+  record_chaos_injuries(match_data)
+  ## End Hero's bit
   
   response <- httr::RETRY("POST",
                           url = league_params$webhook,
