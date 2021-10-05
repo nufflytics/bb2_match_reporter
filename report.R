@@ -706,7 +706,7 @@ record_chaos_injuries <- function(match_data) {
     #filter(race %in% c("Chaos", "Nurgle", "Chaos Dwarf"), !type %in% c("Rotter", "Hobgoblin")) %>%
     left_join(coach_info, by = "team") %>%
     mutate(league = match_data$match$leaguename, competition = match_data$match$competitionname, uuid = match_data$uuid) %>%
-    write_csv("data/chaos_death_tally.csv", append = F, na = "")
+    write_csv("data/chaos_death_tally.csv", append = T, na = "")
 }
 
 post_match <- function(league_params, match_data, times = 0, check_clans = T, check_race = T, check_coaches = T) {
