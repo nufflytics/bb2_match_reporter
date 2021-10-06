@@ -694,19 +694,22 @@ record_chaos_injuries <- function(match_data) {
     
     player_data
   }
-
+  
   #Filter out uninjured players
   injured_players <- player_info %>% 
     map(~map(.,parse_injuries)) %>% 
     map(~.[!map_lgl(., is.null)]) %>%
     map_df(~map_df(. , as_data_frame), .id = "team")
-
+  
   # Only export chaos/nurgle/chorf injuries
-  injured_players %>%
-    filter(race %in% c("Chaos", "Nurgle", "Chaos Dwarf"), !type %in% c("Rotter", "Hobgoblin"), !str_detect(new_injuries, "MNG")) %>%
-    left_join(coach_info, by = "team") %>%
-    mutate(league = match_data$match$leaguename, competition = match_data$match$competitionname, uuid = match_data$uuid) %>%
-    write_csv("data/chaos_death_tally.csv", append = T, na = "")
+  if (nrow(injured_players) > 0) {
+    injured_players %>%
+      filter(race %in% c("Chaos", "Nurgle", "Chaos Dwarf"), !type %in% c("Rotter", "Hobgoblin"), !str_detect(new_injuries, "MNG")) %>%
+      left_join(coach_info, by = "team") %>%
+      mutate(league = match_data$match$leaguename, competition = match_data$match$competitionname, uuid = match_data$uuid) %>%
+      write_csv("data/chaos_death_tally.csv", append = T, na = "")
+  }
+  
 }
 
 post_match <- function(league_params, match_data, times = 0, check_clans = T, check_race = T, check_coaches = T) {
