@@ -1,0 +1,10 @@
+-----
+output: html_document
+-----
+
+#### Test page
+
+```{r}
+head(mtcars)
+```
+
