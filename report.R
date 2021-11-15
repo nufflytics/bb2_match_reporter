@@ -652,8 +652,8 @@ record_chaos_injuries <- function(match_data) {
   player_info <- match_data$match$teams %>% map("roster") %>% set_names(match_data$match$teams %>% map_chr("teamname"))
   
   coach_info <- tibble(
-    team = match_data %>% pluck("teams") %>% map_chr(pluck, "name"),
-    coach = match_data %>% pluck("coaches") %>% map_chr(pluck, "name"),
+    team = match_data$match$teams %>% map_chr(pluck, "teamname"),
+    coach = match_data$match$coaches %>% map_chr(pluck, "coachname"),
     opponent = rev(coach)
   )
   
