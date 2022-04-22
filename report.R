@@ -517,7 +517,7 @@ format_title <- function(coaches) {
 format_teamname <- function(team, match_data) {
   t <- NULL
   
-  if (str_detect(league_name, "REBBL|ReBBRL|RRL")) {
+  if (str_detect(league_name, "(?i)REBBL|ReBBRL|RRL")) {
     t <- glue::glue("[{team$teamname}](http://rebbl.net/team/{team$idteamlisting})")
   } else {
     t <- team$teamname
@@ -530,7 +530,7 @@ format_division <- function(match_data) {
   if (league_name == "REBBL") {
     glue::glue("[{md(match_data$match$competitionname,'*')}](http://rebbl.net/rebbl/{URLencode(match_data$match$leaguename %>% str_remove('REBBL - '))}#{URLencode(match_data$match$competitionname)})")
   } else {
-    if (str_detect(league_name, "ReBBRL|RRL")) {
+    if (str_detect(league_name, "(?i)ReBBRL|RRL")) {
       glue::glue("[{md(match_data$match$competitionname,'*')}](http://rebbl.net/rebbrl/{URLencode(match_data$match$leaguename %>% str_remove('REBBL - '))}#{URLencode(match_data$match$competitionname)})")
     } else {
       md(match_data$match$competitionname,'*')
@@ -589,7 +589,7 @@ format_url <- function(match_data) {
   
   case_when(
     grepl("REBBL", league) ~ glue("https://rebbl.net/rebbl/match/{uuid}") %>% as.character(),
-    grepl("ReBBRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
+    grepl("(?i)ReBBRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
     grepl("RRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
     TRUE ~ glue("http://www.mordrek.com/gspy/match/cid_{uuid}") %>% as.character()
   )
