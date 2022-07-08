@@ -34,7 +34,9 @@ id_to_uuid <- function(id, platform) {
 BAD_WORDS <- c(
   "CUNT",
   "FUCK",
-  "WANKS"
+  "WANKS",
+  "FART",
+  "CUM"
 )
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
