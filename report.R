@@ -34,7 +34,9 @@ id_to_uuid <- function(id, platform) {
 BAD_WORDS <- c(
   "CUNT",
   "FUCK",
-  "WANKS"
+  "WANKS",
+  "FART",
+  "CUM"
 )
 
 #Get most recent game, if uuid doesn't match with last recorded one, keep going back in league history until you find it then return all the new ones
@@ -591,6 +593,7 @@ format_url <- function(match_data) {
     grepl("REBBL", league) ~ glue("https://rebbl.net/rebbl/match/{uuid}") %>% as.character(),
     grepl("(?i)ReBBRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
     grepl("RRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
+    grepl("{?i}Clan", league) ~ glue("https://rebbl.net/clan/match/{uuid}") %>% as.character(),
     TRUE ~ glue("http://www.mordrek.com/gspy/match/cid_{uuid}") %>% as.character()
   )
 }
@@ -737,7 +740,7 @@ post_match <- function(league_params, match_data, times = 0, check_clans = T, ch
   }
   
   ## New bit for Hero's competition
-  record_chaos_injuries(match_data)
+  #record_chaos_injuries(match_data)
   ## End Hero's bit
   
   response <- httr::RETRY("POST",
