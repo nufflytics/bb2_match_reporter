@@ -593,7 +593,7 @@ format_url <- function(match_data) {
     grepl("REBBL", league) ~ glue("https://rebbl.net/rebbl/match/{uuid}") %>% as.character(),
     grepl("(?i)ReBBRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
     grepl("RRL", league) ~ glue("https://rebbl.net/rebbrl/match/{uuid}") %>% as.character(),
-    grepl("{?i}Clan", league) ~ glue("https://rebbl.net/clan/match/{uuid}") %>% as.character(),
+    grepl("(?i)Clan", league) ~ glue("https://rebbl.net/clan/match/{uuid}") %>% as.character(),
     TRUE ~ glue("http://www.mordrek.com/gspy/match/cid_{uuid}") %>% as.character()
   )
 }
